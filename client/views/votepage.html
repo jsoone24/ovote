@@ -1,0 +1,35 @@
+<button name="back">
+    <a ng-href="#!/admin/voteView">목록으로 돌아가기</a>
+</button>
+<br />
+<br />
+<form ng-submit="leave()">
+    <table border="1" style="width: 90%">
+        <tr>
+            <th>이름</th>
+            <th>시작시간</th>
+            <th>종료시간</th>
+            <th>선택내용</th>
+            <th rowspan="2"><button type="submit">제출하기</button></th>
+        </tr>
+        <tr>
+            <td>{{vote.name}}</td>
+            <td>{{vote.start}}</td>
+            <td>{{vote.end}}</td>
+            <td>{{select}}</td>
+        </tr>
+    </table>
+    <br />
+    <table border="1" style="width: 90%">
+        <tr>
+            <th>선택</th>
+            <th>번호</th>
+            <th>내용</th>
+        </tr>
+        <tr ng-repeat="(key, data) in contents">
+            <td><input type="radio" ng-model="$parent.select" ng-value="{{$index}}" /></td>
+            <td>{{$index}}번</td>
+            <td>{{key}}</td>
+        </tr>
+    </table>
+</form>

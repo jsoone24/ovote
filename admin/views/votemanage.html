@@ -1,0 +1,85 @@
+<button name="back">
+    <a ng-href="#!/admin/voteView">목록으로 돌아가기</a>
+</button>
+<br />
+<br />
+투표 이름 :
+<input
+    type="text"
+    name="voteName"
+    ng-model="vote.name"
+    placeholder="{{vote.name}}"
+    required
+/>
+<br />
+투표 설명 :
+<input
+    type="text"
+    name="description"
+    ng-model="vote.description"
+    placeholder="{{vote.description}}"
+/>
+<br />
+제한 나이 :
+<input
+    type="number"
+    name="ageLimit"
+    ng-model="vote.ageLimit"
+    placeholder="{{vote.ageLimit}}"
+    required
+/>
+<br />
+제한 성별 :
+<select
+    name="sexLimit"
+    ng-model="vote.sexLimit"
+    placeholder="{{vote.sexLimit}}"
+    required
+>
+    <option value="0" selected>제한 없음</option>
+    <option value="1">남성만</option>
+    <option value="2">여성만</option>
+</select>
+<br />
+시작 시간 :
+<input
+    type="datetime-local"
+    name="startDate"
+    ng-model="vote.start"
+    value="{{vote.start}}"
+    required
+/>
+<br />
+종료 시간 :
+<input
+    type="datetime-local"
+    name="endDate"
+    ng-model="vote.end"
+    value="{{vote.end}}"
+    required
+/>
+<br />
+투표 내용 :
+<span>
+    <div ng-repeat="(key, data) in contents">
+        <text>{{$index}}번</text>
+        <input
+            type="text"
+            name="description"
+            ng-model="key"
+            value="{{key}}"
+            ng-blur="updateContent(key, $index)"
+        />
+        <button ng-click="deleteContent(key)">삭제</button>
+    </div>
+    <div>
+        내용 추가 :
+        <form name="newContent" ng-submit="addContent(newContentDes)">
+            <input type="text" ng-model="newContentDes" placeholder="새 내용" />
+            <button type="submit">추가</button>
+        </form>
+    </div>
+</span>
+<br />
+
+<button ng-click="done()">입력 완료</button>

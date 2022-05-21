@@ -3,3 +3,7 @@ chaincode/dist
 chaincode/work
 network/config
 network/crypto-config
+node_modules
+admin/bower_components
+client/bower_components
+.DS_Store
