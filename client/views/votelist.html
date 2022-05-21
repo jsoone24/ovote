@@ -1,0 +1,27 @@
+<button name="refreshList" ng-click="refresh()">새로고침</button>
+<br />
+<br />
+<table border="1px" style="width: 90%">
+    <tr>
+        <th>투표 이름</th>
+        <th>시작 시간</th>
+        <th>종료 시간</th>
+        <th>상태</th>
+        <th>투표 여부</th>
+        <th>투표 하기</th>
+        <th>결과 보기</th>
+    </tr>
+    <tr ng-repeat="vote in votes">
+        <td>{{vote.name}}</td>
+        <td>{{vote.start}}</td>
+        <td>{{vote.end}}</td>
+        <td>todo...</td>
+        <td>todo...</td>
+        <td>
+            <button name="vote" ng-click="changeView('/votePage', vote)">투표 하기</button>
+        </td>
+        <td>
+            <button name="voteResult" ng-click="changeView('/voteResult', vote)">투표 결과</button>
+        </td>
+    </tr>
+</table>

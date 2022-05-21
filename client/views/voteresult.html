@@ -1,0 +1,36 @@
+<button name="back">
+    <a ng-href="#!/admin/voteView">목록으로 돌아가기</a>
+</button>
+<br />
+<br />
+<table border="1" style="width: 90%">
+    <tr>
+        <th>이름</th>
+        <th>시작 시간</th>
+        <th>종료 시간</th>
+        <th>상태</th>
+        <th>총 표수</th>
+    </tr>
+    <tr>
+        <td>{{vote.name}}</td>
+        <td>{{vote.start}}</td>
+        <td>{{vote.end}}</td>
+        <td>{{status}}</td>
+        <td>{{sum}}</td>
+    </tr>
+</table>
+<br />
+<table border="1" style="width: 90%">
+    <tr>
+        <th>번호</th>
+        <th>내용</th>
+        <th>득표수</th>
+        <th>득표율</th>
+    </tr>
+    <tr ng-repeat="(key, value) in contents">
+        <td>{{$index}}</td>
+        <td>{{key}}</td>
+        <td>{{value}}</td>
+        <td>{{ value/sum * 100 | number : 2}}%</td>
+    </tr>
+</table>
