@@ -349,7 +349,7 @@ let BlockchainService = function () {
                         let proposalResponses = results[0];
                         let proposal = results[1];
                         let header = results[2];
-
+                        console.log(results);
                         var errMsg = [];
                         // 3. 임시 실행 결과(Proposal)의 취득과 체크 - validateProposal 함수 참조
                         if (validateProposal(proposalResponses, targets.length, errMsg)) {

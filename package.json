@@ -26,6 +26,7 @@
         "@grpc/grpc-js": "1.5.10",
         "express-session": "1.15.5",
         "angular": "~1.8.3",
-        "mysql": "~2.18.1"
+        "mysql": "~2.18.1",
+        "bower": "~1.8.14"
     }
 }

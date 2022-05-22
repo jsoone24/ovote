@@ -2,7 +2,6 @@ package ovote
 
 import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"time"
 )
 
 type Owner struct {
@@ -10,10 +9,10 @@ type Owner struct {
 }
 
 type Vote struct {
-	Id string
-	To int
+	HId string
+	VId string
 	OwnerId string
-	Timestamp time.Time
+	Content string
 }
 
 type OVote interface {
