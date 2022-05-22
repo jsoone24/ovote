@@ -13,7 +13,7 @@
         }
     },
     "channels": {
-        "mychannel": {
+        "localv1": {
             "orderers": [
                 "orderer.example.com"
             ],

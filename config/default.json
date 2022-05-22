@@ -7,10 +7,14 @@
             "admin": {
                 "secret": "ry3XQB@Tk&",
                 "org": "org1"
+            },
+            "serv1": {
+                "secret": "ry3XQB@Tk&",
+                "org": "org1"
             }
         },
         "keyValueStore": "./fabric-client-kvs",
-        "cert_dir": "../network",
+        "cert_dir": "./network",
         "channel": {
             "name": "localv1"
         },
@@ -56,7 +60,7 @@
 
         "serv1": {
             "enrollId": "admin",
-            "name": "Serv1",
+            "name": "serv1",
             "password": "serv1"
         }
     }

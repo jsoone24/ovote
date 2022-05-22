@@ -8,6 +8,8 @@ var service = new BlockchainService();
 var utils = require("fabric-client/lib/utils.js");
 var logger = utils.getLogger("index");
 
+let util = require("../server/util/util");
+
 /* GET users listing. */
 // POST : CREATE
 // create new vote
@@ -102,15 +104,6 @@ router.delete("/:u_id", function (req, res, next) {
             console.log(err);
             res.send(err);
         });
-});
-
-// HyperLedgerFabric connection
-// fetch vote list from fabric
-
-// Verify DB with BlockChain
-router.get("/:u_id/verify", function (req, res, next) {
-    console.log("will do");
-    res.send("will do");
 });
 
 module.exports = router;

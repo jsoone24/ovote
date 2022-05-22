@@ -3,7 +3,7 @@
  */
 
 "use strict";
-let BlockchainService = require("../../server/common/blockchain-service");
+let BlockchainService = require("../common/blockchain-service");
 let service = new BlockchainService();
 let config = require("config");
 let CONFIG = config.asset;

@@ -321,23 +321,23 @@ func (this *OVoteCC) ListOwners(stub shim.ChaincodeStubInterface) ([]*ovote.Owne
 func (this *OVoteCC) AddVote(stub shim.ChaincodeStubInterface,
 	vote *ovote.Vote) error {
 	logger := shim.NewLogger("ovote")
-	logger.Infof("AddVote: Id = %s", vote.Id)
+	logger.Infof("AddVote: HId = %s", vote.HId)
 
 	// creates a composite key
-	key, err := stub.CreateCompositeKey("Vote", []string{vote.Id})
+	key, err := stub.CreateCompositeKey("Vote", []string{vote.HId})
 	if err != nil {
 		logger.Warning(err.Error())
 		return err
 	}
 
 	// checks if the specified Vote exists
-	found, err := this.CheckVote(stub, vote.Id)
+	found, err := this.CheckVote(stub, vote.HId)
 	if err != nil {
 		logger.Warning(err.Error())
 		return err
 	}
 	if found {
-		mes := fmt.Sprintf("Vote with Id = %s already exists", vote.Id)
+		mes := fmt.Sprintf("Vote with HId = %s already exists", vote.HId)
 		logger.Warning(mes)
 		return errors.New(mes)
 	}
@@ -400,7 +400,7 @@ func (this *OVoteCC) CheckVote(stub shim.ChaincodeStubInterface, id string) (boo
 func (this *OVoteCC) ValidateVote(stub shim.ChaincodeStubInterface,
 	vote *ovote.Vote) (bool, error) {
 	logger := shim.NewLogger("ovote")
-	logger.Infof("ValidateVote: Id = %s", vote.Id)
+	logger.Infof("ValidateVote: HId = %s", vote.HId)
 
 	// checks existence of the Owner with the OwnerId
 	found, err := this.CheckOwner(stub, vote.OwnerId)
