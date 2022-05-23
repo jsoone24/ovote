@@ -16,6 +16,9 @@ angular
             $scope.history = data;
         });
         $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        $interval(function () {
+            $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        }, 1000);
         $scope.refresh = function () {
             voteserv.get();
         };

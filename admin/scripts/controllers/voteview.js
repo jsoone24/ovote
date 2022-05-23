@@ -9,9 +9,14 @@
  */
 angular
     .module("adminApp")
-    .controller("VoteviewCtrl", function ($scope, $location, $filter, voteserv) {
+    .controller("VoteviewCtrl", function ($scope, $location, $filter, $interval, voteserv) {
         $scope.votes = voteserv.get();
+
         $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        $interval(function () {
+            $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        }, 1000);
+
         $scope.add = function (view) {
             let vote = {
                 v_id: "",

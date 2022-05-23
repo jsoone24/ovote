@@ -9,10 +9,13 @@
  */
 angular
     .module("clientApp")
-    .controller("VotepageCtrl", function ($scope, $location, $filter, voteserv) {
+    .controller("VotepageCtrl", function ($scope, $location, $filter, $interval, voteserv) {
         $scope.vote = JSON.parse($location.search().param);
         $scope.contents = $scope.vote.contents;
         $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        $interval(function () {
+            $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        }, 1000);
         $scope.select = 0;
 
         $scope.leave = function () {
