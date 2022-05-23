@@ -7,9 +7,10 @@
  * # VoteresultCtrl
  * Controller of the adminApp
  */
-angular.module("adminApp").controller("VoteresultCtrl", function ($scope, $location) {
+angular.module("adminApp").controller("VoteresultCtrl", function ($scope, $filter, $location) {
     $scope.vote = JSON.parse($location.search().param);
     $scope.contents = $scope.vote.contents;
+    $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
     $scope.sum = 0;
 
     // calculate sum

@@ -1,36 +1,44 @@
-<button name="back">
-    <a ng-href="#!/admin/voteView">목록으로 돌아가기</a>
-</button>
-<br />
-<br />
-<table border="1" style="width: 90%">
-    <tr>
-        <th>이름</th>
-        <th>시작 시간</th>
-        <th>종료 시간</th>
-        <th>상태</th>
-        <th>총 표수</th>
-    </tr>
-    <tr>
-        <td>{{vote.name}}</td>
-        <td>{{vote.start}}</td>
-        <td>{{vote.end}}</td>
-        <td>{{status}}</td>
-        <td>{{sum}}</td>
-    </tr>
+<a class="btn btn-primary" ng-href="#!/admin/voteView">목록으로 돌아가기</a> <br /><br />
+<table class="table table-striped table-bordered table-hover text-center align-middle">
+    <thead>
+        <tr>
+            <th scope="col">이름</th>
+            <th scope="col">시작 시간</th>
+            <th scope="col">종료 시간</th>
+            <th scope="col">상태</th>
+            <th scope="col">총 표수</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{vote.name}}</td>
+            <td>{{vote.start}}</td>
+            <td>{{vote.end}}</td>
+            <td ng-if="now < vote.start">시작전</td>
+            <td ng-if="now > vote.start && now < vote.end">진행중</td>
+            <td ng-if="now > vote.end">종료</td>
+            <td>{{sum}}</td>
+        </tr>
+    </tbody>
 </table>
 <br />
-<table border="1" style="width: 90%">
-    <tr>
-        <th>번호</th>
-        <th>내용</th>
-        <th>득표수</th>
-        <th>득표율</th>
-    </tr>
-    <tr ng-repeat="(key, value) in contents">
-        <td>{{$index}}</td>
-        <td>{{key}}</td>
-        <td>{{value}}</td>
-        <td>{{ value/sum * 100 | number : 2}}%</td>
-    </tr>
+<div style="border-top: 1px solid #777"></div>
+<br />
+<table class="table table-striped table-bordered table-hover text-center align-middle">
+    <thead>
+        <tr>
+            <th scope="col">번호</th>
+            <th scope="col">내용</th>
+            <th scope="col">득표수</th>
+            <th scope="col">득표율</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="(key, value) in contents">
+            <th scope="row">{{$index + 1}}번</td>
+            <td>{{key}}</td>
+            <td>{{value}}</td>
+            <td>{{ (value/sum * 100 | number : 2) || 0}}%</td>
+        </tr>
+    </tbody>
 </table>

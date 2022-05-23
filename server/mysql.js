@@ -1,4 +1,3 @@
-const { promiseImpl } = require("ejs");
 var mysql = require("mysql");
 
 var con = mysql.createConnection({
@@ -63,6 +62,7 @@ module.exports = {
         contents : {}
     }
     */
+    // add vote
     addVote: (vote) => {
         return new Promise(function (resolve, reject) {
             con.query("INSERT INTO votes SET ?", vote, function (error, results, fields) {
@@ -74,6 +74,7 @@ module.exports = {
             });
         });
     },
+    // delete vote
     deleteVote: (v_id) => {
         return new Promise(function (resolve, reject) {
             con.query(
@@ -163,6 +164,23 @@ module.exports = {
                 console.log(results);
                 resolve(results);
             });
+        });
+    },
+    // deleteHistory
+    deleteHistory: (his, vid, uid) => {
+        return new Promise(function (resolve, reject) {
+            con.query(
+                "DELETE from votes where v_id = ?, h_id = ?, u_name = ?",
+                [vid, his, uid],
+                function (error, results, fields) {
+                    if (error) {
+                        console.log("in deletevote : " + error);
+                        reject(error);
+                    }
+                    console.log(results);
+                    resolve(results);
+                }
+            );
         });
     },
 };

@@ -95,7 +95,7 @@ cd network
     cd ..
     node server/scirpts/registeruser.js
     node server/scripts/deploy.js
-    node server/scripts/AddOwners.js
+    node server/scripts/addOwners.js
     ```
 2. run server
     ```
