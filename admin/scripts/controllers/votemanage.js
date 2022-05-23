@@ -9,9 +9,13 @@
  */
 angular
     .module("adminApp")
-    .controller("VotemanageCtrl", function ($scope, $location, $filter, voteserv) {
+    .controller("VotemanageCtrl", function ($scope, $location, $filter, $interval, voteserv) {
         $scope.vote = JSON.parse($location.search().param);
         $scope.contents = $scope.vote.contents;
+        $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        $interval(function () {
+            $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
+        }, 1000);
         $scope.vote.start = new Date($scope.vote.start);
         $scope.vote.end = new Date($scope.vote.end);
         $scope.status = "";

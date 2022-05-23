@@ -11,6 +11,7 @@ angular.module("adminApp").factory("voteserv", function ($http, $resource) {
     // Service logic
     // ...
     let VOTE_DATA = "VOTE_DATA";
+
     var storage = {
         votes: [],
         get: function () {
