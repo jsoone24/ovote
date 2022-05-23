@@ -1,5 +1,4 @@
 var express = require("express");
-const { route } = require(".");
 var mysql = require("../server/mysql");
 var router = express.Router();
 
@@ -29,6 +28,7 @@ router.post("/:u_id", function (req, res, next) {
 });
 
 // GET : READ
+// get vote list
 router.get("/:u_id", function (req, res, next) {
     mysql
         .getVotes()
@@ -46,6 +46,7 @@ router.get("/:u_id", function (req, res, next) {
             res.send(err);
         });
 });
+// get user list
 router.get("/:u_id/users", function (req, res, next) {
     mysql
         .getUsers()
@@ -62,7 +63,8 @@ router.get("/:u_id/users", function (req, res, next) {
             res.send(err);
         });
 });
-router.get("/:u_id/histories", function (req, res, next) {
+// get history
+router.get("/:u_id/his", function (req, res, next) {
     mysql.getHistory().then(function (results) {
         var dataList = [];
         for (var data of results) {
@@ -74,7 +76,7 @@ router.get("/:u_id/histories", function (req, res, next) {
 });
 
 // PUT : UPDATE
-// certain v_id
+// update certain v_id
 router.put("/:u_id", function (req, res, next) {
     var data = req.body;
     data.contents = JSON.stringify(data.contents);
@@ -91,7 +93,7 @@ router.put("/:u_id", function (req, res, next) {
 });
 
 // DELETE : DELETE
-// certain v_id
+// delete certain v_id
 router.delete("/:u_id", function (req, res, next) {
     console.log(req.params.u_id, req.query.v_id);
     mysql

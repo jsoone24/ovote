@@ -7,6 +7,15 @@
  * # voteserv
  * Factory in the clientApp.
  */
+/* 
+angular $resource - $http match table
+'get'    : {method:'GET'},                  // get individual record
+'save'   : {method:'POST'},                 // create record
+'query'  : {method:'GET', isArray:true},    // get list all records
+'remove' : {method:'DELETE'},               // remove record
+'delete' : {method:'DELETE'},               // same, remove record
+'update' : {method:'PUT'}};                 // update record
+ */
 angular.module("clientApp").factory("voteserv", function ($http, $resource) {
     // Service logic
     // ...
@@ -27,35 +36,6 @@ angular.module("clientApp").factory("voteserv", function ($http, $resource) {
 
             return storage.votes;
         },
-        remove: function (vote) {
-            var idx = storage.votes.findIndex(function (item) {
-                return item.v_id === vote.v_id;
-            });
-            if (idx > -1) {
-                storage
-                    ._backEndServer()
-                    .remove({ v_id: vote.v_id })
-                    .$promise.then(function (data) {
-                        console.log(data);
-                        storage.votes.splice(idx, 1);
-                        storage._saveToLocalStorage(storage.votes);
-                    })
-                    .catch(function (err) {
-                        console.log(err);
-                    });
-            }
-        },
-        add: function (newVote) {
-            storage
-                ._backEndServer()
-                .save(newVote)
-                .$promise.then(function (data) {
-                    console.log(data);
-                })
-                .catch(function (err) {
-                    console.log(err);
-                });
-        },
         update: function () {
             if (arguments.length > 0) {
                 var upvote = arguments[0];
@@ -75,24 +55,24 @@ angular.module("clientApp").factory("voteserv", function ($http, $resource) {
                             console.log(err);
                         });
                 } else {
-                    // add new vote
-                    console.log("add value");
-                    upvote.v_id = Math.random().toString(36).substring(2, 10);
-                    this.add(upvote);
+                    return null;
                 }
             }
+            return null;
         },
         addHistory: function (selection, v_id) {
-            var h_id = Math.random().toString(36).substring(2, 10);
             storage
                 ._backEndServer()
-                .save({ p: "his" }, { v_id: v_id, content: selection, h_id: h_id })
+                .save({ a: "his" }, { v_id: v_id, content: selection })
                 .$promise.then(function (data) {
                     console.log(data);
                 })
                 .catch(function (err) {
                     console.log(err);
                 });
+        },
+        getHistory: function () {
+            return storage._backEndServer().query({ a: "his", b: "db" });
         },
         verify: function () {
             console.log("will do");
@@ -105,8 +85,8 @@ angular.module("clientApp").factory("voteserv", function ($http, $resource) {
         },
         _backEndServer: function () {
             return $resource(
-                "/cli/:u_id/:p",
-                { u_id: "serv1", p: null },
+                "/cli/:u_id/:a",
+                { u_id: "serv1", a: null },
                 { update: { method: "PUT" } }
             );
         },
