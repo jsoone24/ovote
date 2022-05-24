@@ -20,9 +20,23 @@ module.exports = {
                     console.log("in getVotes: " + error);
                     reject(error);
                 }
-                console.log(results);
                 resolve(results);
             });
+        });
+    },
+    getVote: (v_id) => {
+        return new Promise(function (resolve, reject) {
+            con.query(
+                "SELECT * FROM votes WHERE v_id = ?",
+                v_id,
+                function (error, results, fields) {
+                    if (error) {
+                        console.log("in getVote: " + error);
+                        reject(error);
+                    }
+                    resolve(results);
+                }
+            );
         });
     },
     getUsers: () => {
@@ -85,7 +99,6 @@ module.exports = {
                         console.log("in deletevote : " + error);
                         reject(error);
                     }
-                    console.log(results);
                     resolve(results);
                 }
             );
@@ -111,7 +124,7 @@ module.exports = {
                         console.log("in deletevote : " + error);
                         reject(error);
                     }
-                    console.log(results);
+
                     resolve(results);
                 }
             );
@@ -129,7 +142,7 @@ module.exports = {
                         console.log("in addUsers: " + error);
                         reject(error);
                     }
-                    console.log(results);
+
                     resolve(results);
                 }
             );
@@ -146,7 +159,7 @@ module.exports = {
                         console.log("in deleteUsers: " + error);
                         reject(error);
                     }
-                    console.log(results);
+
                     resolve(results);
                 }
             );
@@ -161,7 +174,7 @@ module.exports = {
                     console.log("in addhistory: " + error);
                     reject(error);
                 }
-                console.log(results);
+
                 resolve(results);
             });
         });
@@ -177,7 +190,7 @@ module.exports = {
                         console.log("in deletevote : " + error);
                         reject(error);
                     }
-                    console.log(results);
+
                     resolve(results);
                 }
             );

@@ -74,8 +74,8 @@ angular.module("adminApp").factory("voteserv", function ($http, $resource) {
                 }
             }
         },
-        verify: function () {
-            console.log("will do");
+        verify: function (v_id) {
+            return storage._backEndServer().get({ a: "ver", b: v_id });
         },
         _saveToLocalStorage: function (data) {
             localStorage.setItem(VOTE_DATA, JSON.stringify(data));
@@ -84,7 +84,11 @@ angular.module("adminApp").factory("voteserv", function ($http, $resource) {
             return JSON.parse(localStorage.getItem(VOTE_DATA));
         },
         _backEndServer: function () {
-            return $resource("/adm/:u_id", { u_id: "admin" }, { update: { method: "PUT" } });
+            return $resource(
+                "/adm/:u_id/:a",
+                { u_id: "admin", a: null },
+                { update: { method: "PUT" } }
+            );
         },
     };
     return storage;

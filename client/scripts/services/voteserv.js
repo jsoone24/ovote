@@ -74,8 +74,8 @@ angular.module("clientApp").factory("voteserv", function ($http, $resource) {
         getHistory: function () {
             return storage._backEndServer().query({ a: "his", b: "db" });
         },
-        verify: function () {
-            console.log("will do");
+        verify: function (v_id) {
+            return storage._backEndServer().get({ a: "ver", b: v_id });
         },
         _saveToLocalStorage: function (data) {
             localStorage.setItem(VOTE_DATA, JSON.stringify(data));

@@ -90,9 +90,7 @@ cd network
 
 1. register users and deploy chaincode on blockchain network
     ```
-    cd chaincode
-    export GOPATH=`pwd`/dist
-    cd ..
+    export GOPATH=`pwd`/chaincode/dist
     node server/scirpts/registeruser.js
     node server/scripts/deploy.js
     node server/scripts/addOwners.js
