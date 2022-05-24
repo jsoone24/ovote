@@ -13,6 +13,7 @@ angular
         $scope.votes = voteserv.get();
         $scope.history = voteserv.getHistory();
         $scope.history.$promise.then(function (data) {
+            console.log(data);
             $scope.history = data;
         });
         $scope.now = $filter("date")(new Date(), "yyyy-MM-dd HH:mm:ss");
