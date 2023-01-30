@@ -2,7 +2,7 @@
 
 ## Description
 
-    Online vote system base on blockchain using hyperledger fabric
+    Online vote system based on Blockchain (Hyperledger Fabric)
 
 ## Environment
 
