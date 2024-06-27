@@ -42,3 +42,6 @@ This secure and anonymous online voting system provides a seamless and efficient
 - Use RabbitMQ for asynchronous processing of voting requests
 - Prevent bottlenecks and improve overall system responsiveness
 - Handle tremendous voting requests, verification, and result fetching
+
+## More guides
+Please refer to the following page: https://jsoone24.github.io/ovote/
