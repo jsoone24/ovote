@@ -91,15 +91,8 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
     expect(agendaCreateRes.statusCode).toBe(201);
     const agenda = agendaCreateRes.json() as { id: string; registrarBlindPk: string };
 
-    // 3) Open agenda
-    const openRes = await app.inject({
-      method: 'POST',
-      url: `/agendas/${agenda.id}/open`,
-      headers: { authorization: `Bearer ${adminToken}` },
-    });
-    expect(openRes.statusCode).toBe(200);
-
-    // 4) Admin adds a voter to eligibility
+    // 3) Admin adds a voter to eligibility (must happen while draft — once
+    //    the agenda is open the eligibility roster is frozen).
     const voterEmail = `voter-${randomUUID()}@example.test`;
     const eligRes = await app.inject({
       method: 'POST',
@@ -108,6 +101,22 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
       payload: { emails: [voterEmail] },
     });
     expect(eligRes.statusCode).toBe(200);
+
+    // 3b) Adding eligibility after open must be rejected
+    const openRes = await app.inject({
+      method: 'POST',
+      url: `/agendas/${agenda.id}/open`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(openRes.statusCode).toBe(200);
+
+    const lateEligRes = await app.inject({
+      method: 'POST',
+      url: `/agendas/${agenda.id}/eligibility`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { emails: [`late-${randomUUID()}@example.test`] },
+    });
+    expect(lateEligRes.statusCode).toBe(409);
 
     // 5) Voter logs in
     const voterToken = await login(voterEmail);

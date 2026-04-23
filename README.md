@@ -41,6 +41,12 @@ chaincode/chaincode.go — legacy (reference only)
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup. All runtimes are project-scoped via `mise`; nothing is installed into your global shell.
 
+For running an election end-to-end (login flow, admin actions, trustee tally, production deployment checklist, key management) see [docs/OPERATIONS.md](docs/OPERATIONS.md). For the HTTP API reference see [docs/API.md](docs/API.md).
+
+> ### Admin UI status
+>
+> v1 ships without an admin web interface. Agenda creation, opening/closing, eligibility management, and tally publication are API-only. See [docs/OPERATIONS.md](docs/OPERATIONS.md#running-an-election-end-to-end) for the curl-driven workflow.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).

@@ -12,6 +12,19 @@ const schema = z.object({
   OVOTE_BLIND_RSA_MODULUS: z.coerce.number().int().refine((n) => n === 2048 || n === 3072 || n === 4096).default(3072),
   OVOTE_ADMIN_BOOTSTRAP_EMAIL: z.string().email().optional(),
 
+  // Comma-separated list of allowed CORS origins. Defaults to "*" (any) so
+  // the dev server works out of the box. Production MUST set an explicit
+  // allowlist, e.g. OVOTE_CORS_ORIGINS=https://vote.example.org
+  OVOTE_CORS_ORIGINS: z.string().default('*'),
+
+  // Controls Fastify's trustProxy. Accepts:
+  //   "false" (default)  — never trust X-Forwarded-* headers
+  //   "true"             — trust all (only safe if the API is NOT
+  //                        publicly reachable; otherwise IP spoofing
+  //                        bypasses the rate limiter)
+  //   CIDR or hop count  — e.g. "10.0.0.0/8" or "1" (trust 1 proxy hop)
+  OVOTE_TRUST_PROXY: z.string().default('false'),
+
   // Mailer — ConsoleMailer (log only) if OVOTE_SMTP_URL is unset.
   // Format: smtp[s]://user:pass@host:port, e.g. smtps://apikey:…@smtp.sendgrid.net:465
   OVOTE_SMTP_URL: z.string().url().optional(),

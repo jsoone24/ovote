@@ -27,7 +27,10 @@ export function credentialRoutes(deps: CredentialDeps) {
   return async (app: FastifyInstance) => {
     app.post(
       '/credentials/blind-sign',
-      { preHandler: [requireSession(deps.sessions, deps.registry)] },
+      {
+        config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+        preHandler: [requireSession(deps.sessions, deps.registry)],
+      },
       async (req, reply) => {
         const body = BlindSignBody.parse(req.body);
         const voter = req.voter!;

@@ -27,10 +27,10 @@ export interface AppDeps {
 export async function buildServer(deps: AppDeps) {
   const app = Fastify({
     logger: { level: deps.config.OVOTE_LOG_LEVEL },
-    trustProxy: true,
+    trustProxy: resolveTrustProxy(deps.config.OVOTE_TRUST_PROXY),
   });
 
-  await app.register(cors, { origin: true });
+  await app.register(cors, { origin: resolveCorsOrigin(deps.config.OVOTE_CORS_ORIGINS) });
   await app.register(sensible);
 
   // Global rate limit floor. Per-route caps (tighter) live on the auth and
@@ -91,4 +91,22 @@ async function buildChain(config: Config, log: FastifyBaseLogger): Promise<Chain
 function buildMailer(config: Config, log: FastifyBaseLogger): Mailer {
   if (config.OVOTE_SMTP_URL) return new SmtpMailer(config.OVOTE_SMTP_URL, config.OVOTE_SMTP_FROM);
   return new ConsoleMailer(log);
+}
+
+// Parses OVOTE_CORS_ORIGINS. "*" means reflect any origin (dev only). Anything
+// else is treated as a comma-separated allowlist and passed verbatim.
+function resolveCorsOrigin(raw: string): true | string[] {
+  if (raw === '*' || raw === '') return true;
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+// Parses OVOTE_TRUST_PROXY. "false"/"" -> don't trust; "true" -> trust all;
+// a number -> hop count; a string containing "/" -> treated as a CIDR the
+// library understands.
+function resolveTrustProxy(raw: string): boolean | number | string {
+  if (raw === '' || raw.toLowerCase() === 'false') return false;
+  if (raw.toLowerCase() === 'true') return true;
+  const n = Number(raw);
+  if (Number.isInteger(n) && n > 0) return n;
+  return raw;
 }

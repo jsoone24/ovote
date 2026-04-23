@@ -33,6 +33,7 @@ export function authRoutes(deps: AuthDeps) {
       async (req, reply) => {
         const { email, code } = VerifyOtpBody.parse(req.body);
         if (!deps.otp.verify(email, code)) {
+          req.log.warn({ email, ip: req.ip }, 'otp verify failed');
           return reply.code(401).send({ error: 'invalid or expired code' });
         }
         const voter = deps.registry.upsertByEmail(email);
@@ -40,5 +41,12 @@ export function authRoutes(deps: AuthDeps) {
         reply.send({ sessionToken: token, voter: { id: voter.id, email: voter.email, role: voter.role } });
       },
     );
+
+    app.post('/auth/logout', async (req, reply) => {
+      const authHeader = req.headers.authorization ?? '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+      if (token) deps.sessions.revoke(token);
+      reply.send({ status: 'logged-out' });
+    });
   };
 }

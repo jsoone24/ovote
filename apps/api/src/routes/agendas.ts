@@ -97,6 +97,17 @@ export function agendaRoutes(deps: AgendaRoutesDeps) {
       { preHandler: [requireSession(deps.sessions, deps.registry), requireRole('admin')] },
       async (req, reply) => {
         const { emails } = EligibilityBody.parse(req.body);
+
+        // Eligibility must be frozen before the agenda opens: a late-added
+        // voter would otherwise be able to obtain a credential and cast a
+        // ballot in an already-running election, which breaks the "who can
+        // vote" auditor check.
+        const agenda = await deps.chain.getAgenda(req.params.id).catch(() => null);
+        if (!agenda) return reply.code(404).send({ error: 'agenda not found' });
+        if (agenda.status !== 'draft') {
+          return reply.code(409).send({ error: 'eligibility can only be edited while agenda is draft' });
+        }
+
         let added = 0;
         for (const email of emails) {
           const voter = deps.registry.upsertByEmail(email);

@@ -13,7 +13,7 @@ export function ballotRoutes(deps: BallotDeps) {
     // credential IS the eligibility proof; no session token is needed (or
     // wanted, since it would reintroduce a linkability vector between voter
     // and ballot).
-    app.post('/ballots', async (req, reply) => {
+    app.post('/ballots', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req, reply) => {
       const ballot = parseBallot(req.body);
 
       const agenda = await deps.chain.getAgenda(ballot.agendaId).catch(() => null);
