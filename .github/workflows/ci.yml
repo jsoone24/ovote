@@ -1,0 +1,97 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: node (typecheck · test · build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: install
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm -r --if-present typecheck
+
+      - name: build
+        run: pnpm -r --if-present build
+
+      - name: test
+        run: pnpm -r --if-present test
+
+  chaincode:
+    name: chaincode (go vet · test · build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: chaincode/ovote
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: chaincode/ovote/go.sum
+
+      - name: go mod download
+        run: go mod download
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go build
+        run: go build ./...
+
+  docker:
+    name: docker (api · web images build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: node
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: build api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/compose/api/Dockerfile
+          push: false
+          tags: ovote/api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/compose/web/Dockerfile
+          push: false
+          tags: ovote/web:ci
+          build-args: VITE_OVOTE_API=http://localhost:3000
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max

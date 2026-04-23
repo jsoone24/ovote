@@ -1,0 +1,6 @@
+bin/
+config/
+crypto-config/
+channel-artifacts/
+.fabric-cache/
+*.tar.gz

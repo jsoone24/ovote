@@ -1,0 +1,27 @@
+# crypto-config.yaml — input for `cryptogen generate`.
+# Generates MSP material for 1 orderer org and 2 peer orgs. Dev-only: for
+# production use a proper CA flow (fabric-ca, external PKI, HSM-backed MSP).
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: ovote.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.ovote.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: Org2
+    Domain: org2.ovote.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1

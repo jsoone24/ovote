@@ -1,0 +1,50 @@
+# docker-compose.yaml — local full-stack: API + Web.
+# Pairs with ../fabric/ when OVOTE_CHAIN_DRIVER=fabric.
+
+name: ovote
+
+networks:
+  ovote:
+    name: ovote
+
+volumes:
+  api-data:
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/api/Dockerfile
+    image: ovote/api:local
+    container_name: ovote-api
+    environment:
+      OVOTE_API_HOST: 0.0.0.0
+      OVOTE_API_PORT: 3000
+      OVOTE_DB_PATH: /data/ovote-api.sqlite
+      OVOTE_LOG_LEVEL: info
+      OVOTE_CHAIN_DRIVER: ${OVOTE_CHAIN_DRIVER:-memory}
+      OVOTE_BLIND_RSA_MODULUS: ${OVOTE_BLIND_RSA_MODULUS:-3072}
+      OVOTE_ADMIN_BOOTSTRAP_EMAIL: ${OVOTE_ADMIN_BOOTSTRAP_EMAIL:-}
+    volumes:
+      - api-data:/data
+    ports:
+      - "3000:3000"
+    networks:
+      - ovote
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/web/Dockerfile
+      args:
+        VITE_OVOTE_API: ${VITE_OVOTE_API:-http://localhost:3000}
+    image: ovote/web:local
+    container_name: ovote-web
+    ports:
+      - "5173:80"
+    networks:
+      - ovote
+    depends_on:
+      - api
+    restart: unless-stopped
