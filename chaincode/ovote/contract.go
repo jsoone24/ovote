@@ -71,6 +71,28 @@ func (c *Contract) GetAgenda(ctx contractapi.TransactionContextInterface, agenda
 	return getAgenda(ctx, agendaID)
 }
 
+func (c *Contract) ListAgendas(ctx contractapi.TransactionContextInterface) ([]*Agenda, error) {
+	iter, err := ctx.GetStub().GetStateByPartialCompositeKey(agendaPrefix, []string{})
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+
+	var out []*Agenda
+	for iter.HasNext() {
+		kv, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		var a Agenda
+		if err := json.Unmarshal(kv.Value, &a); err != nil {
+			return nil, err
+		}
+		out = append(out, &a)
+	}
+	return out, nil
+}
+
 // ---- Ballot submission -----------------------------------------------------
 
 func (c *Contract) CastBallot(ctx contractapi.TransactionContextInterface, ballotJSON string) error {

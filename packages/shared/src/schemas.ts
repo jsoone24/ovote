@@ -179,3 +179,5 @@ export type _SchemaShapeChecks = [
 export const parseAgenda = (input: unknown): Agenda => AgendaSchema.parse(input) as Agenda;
 export const parseBallot = (input: unknown): Ballot => BallotSchema.parse(input) as Ballot;
 export const parseTallyProof = (input: unknown): TallyProof => TallyProofSchema.parse(input) as TallyProof;
+export const parseTrusteeDecryptionShare = (input: unknown): TrusteeDecryptionShare =>
+  TrusteeDecryptionShareSchema.parse(input) as TrusteeDecryptionShare;

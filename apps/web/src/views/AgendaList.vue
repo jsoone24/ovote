@@ -22,6 +22,12 @@ function go(a: Agenda): void {
   if (a.status === 'tallied') router.push({ name: 'agenda-result', params: { id: a.id } });
   else if (a.status === 'open') router.push({ name: 'agenda-vote', params: { id: a.id } });
 }
+
+function goTrustee(a: Agenda): void {
+  router.push({ name: 'agenda-trustee', params: { id: a.id } });
+}
+
+const isTrustee = session.voter.value?.role === 'trustee';
 </script>
 
 <template>
@@ -45,6 +51,12 @@ function go(a: Agenda): void {
         <button v-if="a.status === 'open'" class="primary" @click="go(a)">vote</button>
         <button v-else-if="a.status === 'tallied'" @click="go(a)">result</button>
         <span v-else class="muted">{{ a.status }}</span>
+        <button
+          v-if="isTrustee && (a.status === 'closed' || a.status === 'tallied')"
+          @click="goTrustee(a)"
+        >
+          trustee
+        </button>
       </li>
     </ul>
   </div>

@@ -16,21 +16,29 @@ export interface AuthDeps {
 
 export function authRoutes(deps: AuthDeps) {
   return async (app: FastifyInstance) => {
-    app.post('/auth/otp/request', async (req, reply) => {
-      const { email } = RequestOtpBody.parse(req.body);
-      const code = deps.otp.issue(email);
-      await deps.mailer.sendOtp(email, code);
-      reply.code(202).send({ status: 'otp-sent' });
-    });
+    app.post(
+      '/auth/otp/request',
+      { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+      async (req, reply) => {
+        const { email } = RequestOtpBody.parse(req.body);
+        const code = deps.otp.issue(email);
+        await deps.mailer.sendOtp(email, code);
+        reply.code(202).send({ status: 'otp-sent' });
+      },
+    );
 
-    app.post('/auth/otp/verify', async (req, reply) => {
-      const { email, code } = VerifyOtpBody.parse(req.body);
-      if (!deps.otp.verify(email, code)) {
-        return reply.code(401).send({ error: 'invalid or expired code' });
-      }
-      const voter = deps.registry.upsertByEmail(email);
-      const token = deps.sessions.create(voter.id);
-      reply.send({ sessionToken: token, voter: { id: voter.id, email: voter.email, role: voter.role } });
-    });
+    app.post(
+      '/auth/otp/verify',
+      { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+      async (req, reply) => {
+        const { email, code } = VerifyOtpBody.parse(req.body);
+        if (!deps.otp.verify(email, code)) {
+          return reply.code(401).send({ error: 'invalid or expired code' });
+        }
+        const voter = deps.registry.upsertByEmail(email);
+        const token = deps.sessions.create(voter.id);
+        reply.send({ sessionToken: token, voter: { id: voter.id, email: voter.email, role: voter.role } });
+      },
+    );
   };
 }

@@ -46,5 +46,19 @@ export const api = {
     request<{ ballots: Ballot[] }>(`/ballots/${agendaId}`),
   listDecryptionShares: (agendaId: string) =>
     request<{ shares: TrusteeDecryptionShare[] }>(`/decryption-shares/${agendaId}`),
+  getAggregate: (agendaId: string) =>
+    request<{ agendaId: string; options: { optionId: string; c1: string; c2: string }[] }>(
+      `/agendas/${agendaId}/aggregate`,
+    ),
+  submitDecryptionShare: (share: TrusteeDecryptionShare) =>
+    request<{ status: string }>('/decryption-shares', {
+      method: 'POST',
+      body: JSON.stringify({ share }),
+    }),
+  publishResult: (agendaId: string) =>
+    request<TallyProof>('/results/publish', {
+      method: 'POST',
+      body: JSON.stringify({ agendaId }),
+    }),
   getResult: (agendaId: string) => request<TallyProof>(`/results/${agendaId}`),
 };

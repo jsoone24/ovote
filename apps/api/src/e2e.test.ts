@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import { BlindSignature, ElGamal, Disjunctive, Ristretto, Threshold } from '@ovote/crypto';
 import { toB64Url } from '@ovote/shared';
@@ -14,9 +15,11 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
   let app: FastifyInstance;
   let lastOtp: string | undefined;
 
+  let dbPath: string;
+
   beforeAll(async () => {
     tmp = mkdtempSync(join(tmpdir(), 'ovote-api-test-'));
-    const dbPath = join(tmp, 'test.sqlite');
+    dbPath = join(tmp, 'test.sqlite');
     const config = loadConfig({
       OVOTE_API_PORT: '0',
       OVOTE_DB_PATH: dbPath,
@@ -211,9 +214,7 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
     expect(listRes.statusCode).toBe(200);
     expect((listRes.json() as { ballots: unknown[] }).ballots.length).toBe(1);
 
-    // 12) Admin closes agenda; verify shares-and-tally off-chain logic (we
-    //     don't round-trip through the chaincode here, just prove the crypto
-    //     lib can decrypt the aggregate)
+    // 12) Admin closes agenda
     const closeRes = await app.inject({
       method: 'POST',
       url: `/agendas/${agenda.id}/close`,
@@ -221,17 +222,99 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
     });
     expect(closeRes.statusCode).toBe(200);
 
-    // Aggregate encrypted ciphertext for Alice across the single ballot
-    const aggregate = aliceEnc.ct;
-    const quorum = shares.slice(0, 2);
-    const decShares = quorum.map((s) => Threshold.partialDecrypt(s, aggregate));
-    for (const ds of decShares) {
-      const trustee = publicParams.shares.find((x) => x.index === ds.index)!;
-      expect(
-        Threshold.verifyDecryptionShare({ shareValue: ds, trusteePk: trustee.pk, ct: aggregate }),
-      ).toBe(true);
+    // 13) Register two trustees and promote them directly in the DB (the
+    //     bootstrap admin is the only out-of-band role today; trustees are
+    //     set up by operators, not through a public API).
+    const trusteeEmails = [`t1-${randomUUID()}@example.test`, `t2-${randomUUID()}@example.test`];
+    const trusteeTokens: string[] = [];
+    for (const email of trusteeEmails) {
+      trusteeTokens.push(await login(email));
     }
-    const messagePoint = Threshold.combineShares(decShares, aggregate);
-    expect(ElGamal.discreteLog(messagePoint, 5)).toBe(1);
+    const sideDb = new Database(dbPath);
+    const stmt = sideDb.prepare(`UPDATE voters SET role = 'trustee' WHERE email = ?`);
+    for (const email of trusteeEmails) stmt.run(email);
+    sideDb.close();
+
+    // 14) GET aggregate — public endpoint, returns the homomorphic sum of
+    //     ciphertexts per option. With one ballot for Alice (vote=1, bob=0)
+    //     the aggregate must decrypt to 1 for alice and 0 for bob.
+    const aggRes = await app.inject({ method: 'GET', url: `/agendas/${agenda.id}/aggregate` });
+    expect(aggRes.statusCode).toBe(200);
+    const aggregate = (aggRes.json() as {
+      options: { optionId: string; c1: string; c2: string }[];
+    }).options;
+    expect(aggregate).toHaveLength(2);
+
+    // 15) Each trustee computes and submits decryption shares for every option
+    for (let i = 0; i < 2; i++) {
+      const trusteeShare = shares[i]!;
+      for (const a of aggregate) {
+        const ct = {
+          c1: Ristretto.pointFromB64Url(a.c1),
+          c2: Ristretto.pointFromB64Url(a.c2),
+        };
+        const partial = Threshold.partialDecrypt(trusteeShare, ct);
+        const body = {
+          share: {
+            agendaId: agenda.id,
+            optionId: a.optionId,
+            trusteeIndex: trusteeShare.index,
+            share: toB64Url(Ristretto.pointToBytes(partial.share)),
+            proof: partial.proof,
+            submittedAt: new Date().toISOString(),
+          },
+        };
+        const subRes = await app.inject({
+          method: 'POST',
+          url: '/decryption-shares',
+          headers: { authorization: `Bearer ${trusteeTokens[i]}` },
+          payload: body,
+        });
+        expect(subRes.statusCode).toBe(201);
+      }
+    }
+
+    // 16) A tampered share must be rejected by the proof check. We submit
+    //     a well-formed share whose value is wrong (zero point) so the Chaum-
+    //     Pedersen equality-of-DLogs verification fails.
+    const realShare = Threshold.partialDecrypt(shares[2]!, {
+      c1: Ristretto.pointFromB64Url(aggregate[0]!.c1),
+      c2: Ristretto.pointFromB64Url(aggregate[0]!.c2),
+    });
+    const badShare = {
+      share: {
+        agendaId: agenda.id,
+        optionId: aggregate[0]!.optionId,
+        trusteeIndex: shares[2]!.index,
+        share: toB64Url(Ristretto.pointToBytes(Ristretto.ZERO)),
+        proof: realShare.proof,
+        submittedAt: new Date().toISOString(),
+      },
+    };
+    const badRes = await app.inject({
+      method: 'POST',
+      url: '/decryption-shares',
+      headers: { authorization: `Bearer ${trusteeTokens[0]}` },
+      payload: badShare,
+    });
+    expect(badRes.statusCode).toBe(400);
+
+    // 17) Admin publishes the final tally — API combines shares off-chain,
+    //     solves the small discrete log, and writes the result to the chain.
+    const pubRes = await app.inject({
+      method: 'POST',
+      url: '/results/publish',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { agendaId: agenda.id },
+    });
+    expect(pubRes.statusCode).toBe(201);
+    const tally = pubRes.json() as { results: { optionId: string; count: number }[] };
+    const countFor = (id: string) => tally.results.find((r) => r.optionId === id)!.count;
+    expect(countFor('alice')).toBe(1);
+    expect(countFor('bob')).toBe(0);
+
+    // 18) GET result — the published tally is now publicly fetchable
+    const getRes = await app.inject({ method: 'GET', url: `/results/${agenda.id}` });
+    expect(getRes.statusCode).toBe(200);
   }, 60_000);
 });
