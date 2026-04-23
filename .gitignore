@@ -35,6 +35,8 @@ pnpm-debug.log*
 # Chaincode build artifacts
 chaincode/chaincode
 chaincode/*.test
+chaincode/ovote/ovote
+chaincode/ovote/chaincode
 
 # TypeScript incremental build info
 **/.tsbuildinfo
