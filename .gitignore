@@ -35,3 +35,6 @@ pnpm-debug.log*
 # Chaincode build artifacts
 chaincode/chaincode
 chaincode/*.test
+
+# TypeScript incremental build info
+**/.tsbuildinfo
