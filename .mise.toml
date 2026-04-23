@@ -1,0 +1,56 @@
+# Project-scoped runtime pins.
+# Runtimes live under ~/.local/share/mise/installs and are only on PATH
+# when mise is activated OR when commands run via `mise exec` / `mise run`.
+# No global shell PATH modifications are required.
+
+[tools]
+node = "24.15.0"
+go   = "1.26.2"
+# pnpm is managed by corepack, driven by the root package.json "packageManager" field.
+
+[env]
+# Project-local env. Not exported outside this directory tree.
+PROJECT_NAME    = "ovote"
+NODE_ENV        = "development"
+# Keep Go module/build caches inside the project so they never touch the global home cache.
+GOPATH          = "{{ config_root }}/.cache/go"
+GOMODCACHE      = "{{ config_root }}/.cache/go/pkg/mod"
+GOCACHE         = "{{ config_root }}/.cache/go/build"
+# Ensure pnpm stores its content-addressable store inside the project too.
+PNPM_HOME       = "{{ config_root }}/.cache/pnpm"
+npm_config_store_dir = "{{ config_root }}/.cache/pnpm/store"
+
+# Prepend project-local shims (pnpm, yarn) so tasks find them automatically.
+_.path = ["{{ config_root }}/.cache/bin"]
+
+[tasks.bootstrap]
+description = "Install runtimes and activate pnpm via corepack (no project-deps install)"
+run = [
+  "mise install",
+  "mkdir -p {{ config_root }}/.cache/bin",
+  "corepack enable --install-directory {{ config_root }}/.cache/bin",
+  "corepack prepare pnpm@latest --activate",
+]
+
+[tasks.doctor]
+description = "Print resolved toolchain versions"
+run = [
+  "node --version",
+  "go version",
+  "pnpm --version || echo 'pnpm not yet activated — run: mise run setup'",
+]
+
+[tasks."api:dev"]
+description = "Run backend API in watch mode"
+dir = "backend-server"
+run = "pnpm dev"
+
+[tasks."web:dev"]
+description = "Run frontend in dev mode"
+dir = "frontend_server"
+run = "pnpm dev"
+
+[tasks."chaincode:test"]
+description = "Run chaincode unit tests"
+dir = "chaincode"
+run = "go test ./..."

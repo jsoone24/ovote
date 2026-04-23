@@ -1,4 +1,37 @@
-*/node_modules
-*/vendor
+# Dependency directories
+**/node_modules/
+**/vendor/
+
+# Build output
+**/dist/
+**/build/
+**/.output/
+**/.vite/
+**/.turbo/
+**/coverage/
+
+# Project-local caches (mise tasks write here to avoid global home-dir cache)
+.cache/
+
+# Env & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
 .DS_Store
-.idea
+.idea/
+.vscode/
+!.vscode/settings.json.example
+
+# mise machine-local overrides
+.mise.local.toml
+
+# Chaincode build artifacts
+chaincode/chaincode
+chaincode/*.test

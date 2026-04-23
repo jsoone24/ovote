@@ -1,47 +1,50 @@
-# ovote: Blockchain based Online Voting System
+# ovote
 
-## Project Overview
-This secure and anonymous online voting system provides a seamless and efficient voting process while ensuring voter privacy. Catering to both administrators and users, it offers distinct functionalities based on roles. Built with Vue.js for a responsive UI and Express.js for backend management, it leverages Hyperledger Fabric for blockchain verification to ensure data integrity and security, and MongoDB for secure and efficient data storage. Additionally, RabbitMQ is integrated for asynchronous processing, distributing incoming requests across multiple servers and decoupling request processing from the backend to ensure high availability and scalability. This system utilizes advanced technologies to maintain responsiveness under heavy load.
+End-to-end verifiable consortium voting on Hyperledger Fabric.
 
-## Key Features
+> ### ⚠ Scope notice
+>
+> **ovote is designed for consortium and organizational voting** — unions, universities, shareholder votes, cooperatives, professional societies, political-party internal primaries, and similar private elections.
+>
+> **ovote is NOT fit for, and must not be used for, public government elections** (federal, state, provincial, municipal, or equivalent). The research consensus is that internet voting cannot currently be made secure for public office. Paper ballots with risk-limiting audits remain the standard. See [ADR 0001](docs/adr/0001-scope-and-compliance.md).
 
-### Distinct Roles for Administrators and Users
-- Separate functionalities, pages, and routing for administrators and users
-- Both roles use the same login page
+## What it is
 
-### Administrator Functions
-- Display a list of agenda items
-- Create, modify, delete agenda items, and view results
-- Verify and compare voting results (database vs. blockchain)
-- Cannot modify ongoing or completed voting processes
+A voting system built on four primitives:
 
-### User Functions
-- Display a list of agenda items
-- View agenda item information
-- Cast votes on agenda items
-- Verify and compare voting results (database vs. blockchain)
-- Cannot vote on agenda items that have not started or have already ended
-- Voting records are stored on the blockchain
+- **Threshold ElGamal encryption** — each ballot is encrypted under a public key jointly controlled by trustees drawn from distinct consortium organizations. No single party (and no coalition below the threshold) can decrypt any individual ballot.
+- **Disjunctive zero-knowledge proofs** — every submitted ballot carries a proof that it encrypts a well-formed vote, without revealing which option.
+- **Homomorphic tally** — trustees jointly decrypt only the aggregate sum. Individual ballots are never decrypted.
+- **Hyperledger Fabric bulletin board** — ballots and proofs are published to an append-only consortium ledger. No personally identifiable information is ever written on-chain.
 
-### Login Functionality
-- Administrators and users log in through the same login screen
-- After login, administrators are directed to the admin page, and users to the user page
-- Provides sign-up features
+## Security and privacy claims
 
-### Database
-- Agenda: Creation time, name, description, start time, end time, options (array)
-- User: Name, email, password, organization, list of voted agenda items
-- Voting Record: Voting organization, agenda ID, creation time, selected option
+See [ADR 0002](docs/adr/0002-security-properties.md) for the full property table. In short:
 
-### Blockchain Verification
-- Integrate Hyperledger Fabric for storing voting records
-- Compare consistency between MongoDB and the blockchain
-- Define chaincode for voting records
+- **Claimed:** ballot integrity, ballot secrecy (under threshold trust), end-to-end verifiability, immutability, eligibility/Sybil resistance, voter↔ballot non-linkability, partial receipt-freeness.
+- **Not claimed:** compromised-device resistance, coercion resistance, network-level anonymity, DoS resistance, fitness for public elections.
 
-### Asynchronous Processing with RabbitMQ
-- Use RabbitMQ for asynchronous processing of voting requests
-- Prevent bottlenecks and improve overall system responsiveness
-- Handle tremendous voting requests, verification, and result fetching
+## Status
 
-## More guides
-Please refer to the following page: https://jsoone24.github.io/ovote/
+Under refactor. The current top-level layout:
+
+```
+apps/                  — web (voter UI) and api (registrar + query) — WIP
+packages/              — shared crypto primitives and types — WIP
+chaincode/ovote/       — Fabric smart contract — WIP
+deploy/                — Fabric test network, docker-compose, k8s manifests — WIP
+docs/                  — ADRs, development guide
+backend-server/        — legacy (reference only)
+frontend_server/       — legacy (reference only)
+chaincode/chaincode.go — legacy (reference only)
+```
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup. All runtimes are project-scoped via `mise`; nothing is installed into your global shell.
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
+
+## Security disclosure
+
+See [SECURITY.md](SECURITY.md).
