@@ -66,18 +66,19 @@ type BallotCredential struct {
 	Signature string `json:"signature"`
 }
 
+type SchnorrProof struct {
+	Commitment string `json:"commitment"`
+	Response   string `json:"response"`
+}
+
 type Ballot struct {
 	Id         string                   `json:"id"`
 	AgendaId   string                   `json:"agendaId"`
 	Options    []BallotOptionCiphertext `json:"options"`
+	SumProof   SchnorrProof             `json:"sumProof"`
 	Credential BallotCredential         `json:"credential"`
 	CastAt     string                   `json:"castAt"`
 	Transcript string                   `json:"transcript"`
-}
-
-type SchnorrProof struct {
-	Commitment string `json:"commitment"`
-	Response   string `json:"response"`
 }
 
 type TrusteeDecryptionShare struct {

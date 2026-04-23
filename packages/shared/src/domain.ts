@@ -59,18 +59,19 @@ export interface BallotCredential {
   signature: B64Url;
 }
 
+export interface SchnorrProof {
+  commitment: string;
+  response: B64Url;
+}
+
 export interface Ballot {
   id: Uuid;
   agendaId: AgendaId;
   options: BallotOptionCiphertext[];
+  sumProof: SchnorrProof;
   credential: BallotCredential;
   castAt: IsoDateTime;
   transcript: string;
-}
-
-export interface SchnorrProof {
-  commitment: string;
-  response: B64Url;
 }
 
 export interface TrusteeDecryptionShare {

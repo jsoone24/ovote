@@ -50,6 +50,10 @@ const validBallot = {
       ],
     },
   ],
+  sumProof: {
+    commitment: 'AAAA.BBBB',
+    response: 'CCCC',
+  },
   credential: {
     nonce: 'bm9uY2U',
     signature: 'c2ln',

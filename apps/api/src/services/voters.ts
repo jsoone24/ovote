@@ -49,21 +49,31 @@ export class VoterRegistry {
       .run(voterId, agendaId);
   }
 
-  hasIssuedCredential(voterId: string, agendaId: string): boolean {
+  findIssuedCredential(
+    voterId: string,
+    agendaId: string,
+  ): { blindedMessage: string; blindSignature: string } | null {
     const row = this.db
       .prepare(
-        `SELECT 1 AS x FROM credentials_issued WHERE voter_id = ? AND agenda_id = ?`,
+        `SELECT blinded_message AS blindedMessage, blind_signature AS blindSignature
+         FROM credentials_issued WHERE voter_id = ? AND agenda_id = ?`,
       )
-      .get(voterId, agendaId) as { x: number } | undefined;
-    return row !== undefined;
+      .get(voterId, agendaId) as { blindedMessage: string; blindSignature: string } | undefined;
+    return row ?? null;
   }
 
-  recordCredentialIssued(voterId: string, agendaId: string): void {
+  recordCredentialIssued(
+    voterId: string,
+    agendaId: string,
+    blindedMessage: string,
+    blindSignature: string,
+  ): void {
     this.db
       .prepare(
-        `INSERT INTO credentials_issued (voter_id, agenda_id, issued_at) VALUES (?, ?, ?)`,
+        `INSERT INTO credentials_issued (voter_id, agenda_id, issued_at, blinded_message, blind_signature)
+         VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(voterId, agendaId, new Date().toISOString());
+      .run(voterId, agendaId, new Date().toISOString(), blindedMessage, blindSignature);
   }
 
   listAll(): Voter[] {

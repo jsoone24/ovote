@@ -99,21 +99,22 @@ export const BallotCredentialSchema = z
   })
   .strict();
 
+export const SchnorrProofSchema = z
+  .object({
+    commitment: z.string().min(1),
+    response: B64UrlSchema,
+  })
+  .strict();
+
 export const BallotSchema = z
   .object({
     id: UuidSchema,
     agendaId: AgendaIdSchema,
     options: z.array(BallotOptionCiphertextSchema).min(2),
+    sumProof: SchnorrProofSchema,
     credential: BallotCredentialSchema,
     castAt: IsoDateTimeSchema,
     transcript: z.string(),
-  })
-  .strict();
-
-export const SchnorrProofSchema = z
-  .object({
-    commitment: z.string().min(1),
-    response: B64UrlSchema,
   })
   .strict();
 

@@ -68,6 +68,31 @@ export class MemoryChain implements ChainGateway {
   async publishResult(result: TallyProof): Promise<void> {
     const a = this.requireAgenda(result.agendaId);
     if (a.status !== 'closed') throw new Error(`agenda ${a.id} not closed`);
+
+    // Mirror the chaincode's sanity checks: the result must cover every
+    // option exactly once, and each option must have ≥threshold trustee
+    // shares on the board. This keeps the two drivers behaviour-identical.
+    if (result.results.length !== a.options.length) {
+      throw new Error(`tally covers ${result.results.length} options but agenda has ${a.options.length}`);
+    }
+    const shares = this.shares.get(result.agendaId) ?? new Map();
+    const sharesPerOption = new Map<string, Set<number>>();
+    for (const s of shares.values()) {
+      if (!sharesPerOption.has(s.optionId)) sharesPerOption.set(s.optionId, new Set());
+      sharesPerOption.get(s.optionId)!.add(s.trusteeIndex);
+    }
+    const validOptionIds = new Set(a.options.map((o) => o.id));
+    const seen = new Set<string>();
+    for (const r of result.results) {
+      if (!validOptionIds.has(r.optionId)) throw new Error(`tally option ${r.optionId} not on agenda`);
+      if (seen.has(r.optionId)) throw new Error(`tally repeats option ${r.optionId}`);
+      seen.add(r.optionId);
+      const n = sharesPerOption.get(r.optionId)?.size ?? 0;
+      if (n < a.key.threshold) {
+        throw new Error(`option ${r.optionId} has ${n} decryption shares, need threshold=${a.key.threshold}`);
+      }
+    }
+
     this.results.set(result.agendaId, result);
     a.status = 'tallied';
   }

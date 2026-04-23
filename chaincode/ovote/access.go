@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
@@ -18,6 +19,12 @@ import (
 // Voters themselves do not transact on-chain. The registrar relays ballots,
 // and anonymity is protected by the blind-signed credential (the registrar
 // cannot link a credential to a voter identity).
+//
+// ovote.role is a comma-separated list so a single API gateway identity can
+// act as admin and registrar and trustee without provisioning three
+// certificates (a trusted-relay deployment). Production deployments that want
+// stronger separation can issue one identity per role and pin each to its
+// own gateway connection.
 
 const (
 	attrRole = "ovote.role"
@@ -36,10 +43,12 @@ func requireRole(ctx contractapi.TransactionContextInterface, role string) error
 	if !found {
 		return fmt.Errorf("caller has no %q attribute", attrRole)
 	}
-	if val != role {
-		return fmt.Errorf("caller role %q does not match required role %q", val, role)
+	for _, r := range strings.Split(val, ",") {
+		if strings.TrimSpace(r) == role {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("caller roles %q do not include required role %q", val, role)
 }
 
 func callerID(ctx contractapi.TransactionContextInterface) (string, error) {

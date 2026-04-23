@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { BlindSignature, ElGamal, Disjunctive, Ristretto, Threshold } from '@ovote/crypto';
+import { BlindSignature, ElGamal, Disjunctive, Ristretto, Schnorr, Threshold } from '@ovote/crypto';
 import { toB64Url } from '@ovote/shared';
 import { buildServer } from './server.js';
 import { loadConfig } from './config.js';
@@ -171,8 +171,22 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
       randomness: bobEnc.r,
     });
 
+    const ballotId = randomUUID();
+    const sumR = Ristretto.scalarAdd(aliceEnc.r, bobEnc.r);
+    const sumC1 = Ristretto.pointAdd(aliceEnc.ct.c1, bobEnc.ct.c1);
+    const sumC2 = Ristretto.pointAdd(aliceEnc.ct.c2, bobEnc.ct.c2);
+    const sumC2MinusOne = Ristretto.pointSub(sumC2, Ristretto.basePointMul(1n));
+    const sumProof = Schnorr.proveEqualityOfDiscreteLogs({
+      domain: `ballot-sum:${agenda.id}`,
+      x: sumR,
+      g1: Ristretto.BASE,
+      h1: sumC1,
+      g2: groupPkPoint,
+      h2: sumC2MinusOne,
+    });
+
     const ballot = {
-      id: randomUUID(),
+      id: ballotId,
       agendaId: agenda.id,
       options: [
         {
@@ -192,6 +206,7 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
           proof: bobProof.parts,
         },
       ],
+      sumProof,
       credential: {
         nonce: toB64Url(preparedNonce),
         signature: toB64Url(signature),

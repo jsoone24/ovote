@@ -263,6 +263,45 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 	if agenda.Status != StatusClosed {
 		return fmt.Errorf("agenda %q must be closed before tally (status=%s)", agenda.Id, agenda.Status)
 	}
+
+	// Sanity-check the submitted tally against the bulletin board: every
+	// option must appear exactly once and be backed by at least threshold
+	// trustee decryption shares. The actual count value is the result of
+	// off-chain Lagrange interpolation + small-discrete-log; we cannot
+	// re-run the crypto here, but we can ensure the shares exist so an
+	// admin can't publish a fabricated result out of thin air.
+	if len(r.Results) != len(agenda.Options) {
+		return fmt.Errorf("tally covers %d options but agenda has %d", len(r.Results), len(agenda.Options))
+	}
+	shares, err := c.ListDecryptionShares(ctx, agenda.Id)
+	if err != nil {
+		return fmt.Errorf("load decryption shares: %w", err)
+	}
+	sharesPerOption := map[string]map[int]struct{}{}
+	for _, s := range shares {
+		if sharesPerOption[s.OptionId] == nil {
+			sharesPerOption[s.OptionId] = map[int]struct{}{}
+		}
+		sharesPerOption[s.OptionId][s.TrusteeIndex] = struct{}{}
+	}
+	seen := map[string]struct{}{}
+	for _, res := range r.Results {
+		if !optionExists(agenda, res.OptionId) {
+			return fmt.Errorf("tally option %q not on agenda", res.OptionId)
+		}
+		if _, dup := seen[res.OptionId]; dup {
+			return fmt.Errorf("tally repeats option %q", res.OptionId)
+		}
+		seen[res.OptionId] = struct{}{}
+		if res.Count < 0 {
+			return fmt.Errorf("tally count for %q is negative", res.OptionId)
+		}
+		if len(sharesPerOption[res.OptionId]) < agenda.Key.Threshold {
+			return fmt.Errorf("option %q has %d decryption shares, need threshold=%d",
+				res.OptionId, len(sharesPerOption[res.OptionId]), agenda.Key.Threshold)
+		}
+	}
+
 	if r.PublishedAt == "" {
 		r.PublishedAt = txTime(ctx)
 	}

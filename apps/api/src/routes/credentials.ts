@@ -43,20 +43,37 @@ export function credentialRoutes(deps: CredentialDeps) {
         if (!deps.registry.isEligible(voter.id, body.agendaId)) {
           return reply.code(403).send({ error: 'voter not on eligibility roster' });
         }
-        if (deps.registry.hasIssuedCredential(voter.id, body.agendaId)) {
+
+        // Idempotent retry: if the voter has already received a signature for
+        // this agenda, only replay it when the request carries the exact same
+        // blinded message. A different blinded message means a second
+        // credential attempt — refuse (one credential per voter per agenda).
+        const existing = deps.registry.findIssuedCredential(voter.id, body.agendaId);
+        if (existing) {
+          if (existing.blindedMessage === body.blindedMessage) {
+            reply.send({ blindSignature: existing.blindSignature });
+            return;
+          }
           return reply.code(409).send({ error: 'credential already issued for this agenda' });
         }
 
         const { privateKey } = await deps.signer.getOrCreate(body.agendaId);
         const blindedBytes = fromB64Url(body.blindedMessage);
         const blindSig = await BlindSignature.blindSign(privateKey, blindedBytes);
+        const blindSigB64 = toB64Url(blindSig);
 
-        // Record issuance BEFORE returning signature so a network failure can
-        // re-enable retry; voter gets the signature once and the registrar
-        // refuses further signatures on the same agenda for this voter.
-        deps.registry.recordCredentialIssued(voter.id, body.agendaId);
+        // Persist the (blindedMessage, blindSignature) pair so a lost response
+        // can be recovered by the voter replaying the same request — without
+        // that, a network glitch between DB write and HTTP response would
+        // permanently lock the voter out for this agenda.
+        deps.registry.recordCredentialIssued(
+          voter.id,
+          body.agendaId,
+          body.blindedMessage,
+          blindSigB64,
+        );
 
-        reply.send({ blindSignature: toB64Url(blindSig) });
+        reply.send({ blindSignature: blindSigB64 });
       },
     );
   };

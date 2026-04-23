@@ -116,6 +116,9 @@ func validateBallot(b *Ballot) error {
 	if sigBytes, err := base64.RawURLEncoding.DecodeString(b.Credential.Signature); err != nil || len(sigBytes) < 256 {
 		return fmt.Errorf("credential signature invalid or too short")
 	}
+	if b.SumProof.Commitment == "" || !b64UrlRe.MatchString(b.SumProof.Response) {
+		return fmt.Errorf("sum proof missing or malformed")
+	}
 	return nil
 }
 

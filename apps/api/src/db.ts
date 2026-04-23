@@ -10,7 +10,16 @@ export function openDatabase(path: string): DB {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   migrate(db);
+  addColumnIfMissing(db, 'credentials_issued', 'blinded_message', "TEXT NOT NULL DEFAULT ''");
+  addColumnIfMissing(db, 'credentials_issued', 'blind_signature', "TEXT NOT NULL DEFAULT ''");
   return db;
+}
+
+function addColumnIfMissing(db: DB, table: string, column: string, ddl: string): void {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!rows.some((r) => r.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  }
 }
 
 function migrate(db: DB): void {
@@ -42,9 +51,11 @@ function migrate(db: DB): void {
     );
 
     CREATE TABLE IF NOT EXISTS credentials_issued (
-      voter_id     TEXT NOT NULL REFERENCES voters(id),
-      agenda_id    TEXT NOT NULL,
-      issued_at    TEXT NOT NULL,
+      voter_id          TEXT NOT NULL REFERENCES voters(id),
+      agenda_id         TEXT NOT NULL,
+      issued_at         TEXT NOT NULL,
+      blinded_message   TEXT NOT NULL DEFAULT '',
+      blind_signature   TEXT NOT NULL DEFAULT '',
       PRIMARY KEY (voter_id, agenda_id)
     );
 

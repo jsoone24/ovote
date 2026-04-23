@@ -1,4 +1,4 @@
-import { BlindSignature, Disjunctive, Ristretto } from '@ovote/crypto';
+import { BlindSignature, Disjunctive, Ristretto, Schnorr } from '@ovote/crypto';
 import type { Agenda, Ballot } from '@ovote/shared';
 import { fromB64Url } from '@ovote/shared';
 
@@ -18,6 +18,8 @@ export async function verifyBallot(agenda: Agenda, ballot: Ballot): Promise<{ ok
   const zeroOrOne = Disjunctive.zeroOrOneMessagePoints();
 
   const seen = new Set<string>();
+  let sumC1 = Ristretto.ZERO;
+  let sumC2 = Ristretto.ZERO;
   for (const opt of ballot.options) {
     if (!agendaOptionIds.has(opt.optionId)) {
       return { ok: false, reason: `unknown option ${opt.optionId}` };
@@ -42,6 +44,26 @@ export async function verifyBallot(agenda: Agenda, ballot: Ballot): Promise<{ ok
     if (!proofOk) {
       return { ok: false, reason: `disjunctive proof failed for option ${opt.optionId}` };
     }
+
+    sumC1 = Ristretto.pointAdd(sumC1, ct.c1);
+    sumC2 = Ristretto.pointAdd(sumC2, ct.c2);
+  }
+
+  // Each option proves 0-or-1 individually; the sum proof binds them so
+  // the voter can't encode all-zero (abstention smuggled past eligibility) or
+  // all-one (one ballot casting N votes) ballots. Equality of discrete logs
+  // on (sumC1, G) and (sumC2 - G, pk) shows the aggregate encrypts exactly 1.
+  const sumC2MinusOne = Ristretto.pointSub(sumC2, Ristretto.basePointMul(1n));
+  const sumOk = Schnorr.verifyEqualityOfDiscreteLogs({
+    domain: `ballot-sum:${ballot.agendaId}`,
+    g1: Ristretto.BASE,
+    h1: sumC1,
+    g2: pk,
+    h2: sumC2MinusOne,
+    proof: ballot.sumProof,
+  });
+  if (!sumOk) {
+    return { ok: false, reason: 'ballot sum proof failed (options must sum to exactly 1)' };
   }
 
   // Verify blind-signed credential. `nonce` carries the already-prepared

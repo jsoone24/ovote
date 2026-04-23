@@ -54,5 +54,28 @@ OVOTE_FABRIC_TLS_CERT=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.l
 OVOTE_FABRIC_IDENTITY=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/users/Admin@org1.ovote.local
 ```
 
+## Role attribute on the API identity
+
+Chaincode reads the `ovote.role` attribute from the caller's certificate to
+gate each method. Because the API is a trusted relay that performs every
+role on behalf of end users (admin → create agenda, registrar → forward
+ballots, trustee → submit shares), the attribute is a comma-separated list
+on a single cert, e.g. `ovote.role=admin,registrar,trustee`.
+
+`cryptogen` (used by this dev network) does not issue certs with custom
+attributes. Production deployments must use fabric-ca to register the API
+identity with the desired roles, for example:
+
+```
+fabric-ca-client register \
+  --id.name api-gateway \
+  --id.attrs "ovote.role=admin,registrar,trustee:ecert"
+fabric-ca-client enroll -u https://api-gateway:PASS@ca.org1.ovote.local:7054
+```
+
+If you want hard separation between roles, issue one identity per role and
+run three gateway clients. The chaincode will accept both models — it only
+checks that the required role appears in `ovote.role`.
+
 The Fabric gateway driver is a v2 task (see `docs/adr/0005`); v1 uses
 `OVOTE_CHAIN_DRIVER=memory`.

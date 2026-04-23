@@ -349,7 +349,8 @@ See [SECURITY.md](../SECURITY.md) for the disclosure policy.
 - **Device trust.** End-to-end verifiability assumes voter's device is honest. No defense against malware on the voter's computer.
 - **Network anonymity.** The registrar sees the IP and email of every voter. Blind-signing breaks voter↔ballot linkability at the cryptographic level, but traffic analysis + timing is out of scope.
 - **Trustee key generation.** v1 uses a trusted dealer. For stronger guarantees swap in DKG — the on-chain format is ready for it.
-- **Admin UI.** Missing. Admin flows require API access or a small ops script.
+- **Single-choice ballots only.** The sum-proof in `ballot-verifier.ts` binds each ballot to encrypt exactly one `1` across all options. Supporting "pick up to k" or ranked ballots would need a different aggregate proof (e.g. sum ∈ {1..k}).
+- **Single Fabric identity.** The API uses one certificate for every on-chain role; the chaincode `ovote.role` attribute is a comma-separated list (`admin,registrar,trustee`). Deployments that want stronger separation can issue one identity per role — the chaincode accepts both.
 - **Single-instance API.** Sessions and OTPs are stored in SQLite on one node. Multi-replica deployments need a shared DB or a move to Redis.
 - **Eligibility is frozen at open.** Adding a voter after the agenda opens returns `409`. This is by design — late additions break the "who could vote" auditor check.
 - **OTP over email.** Email is the weakest link. For anything sensitive combine with SSO or an additional second factor at the proxy layer.

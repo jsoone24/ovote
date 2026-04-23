@@ -1,4 +1,4 @@
-import { BlindSignature, Disjunctive, ElGamal, Ristretto } from '@ovote/crypto';
+import { BlindSignature, Disjunctive, ElGamal, Ristretto, Schnorr } from '@ovote/crypto';
 import { fromB64Url, toB64Url } from '@ovote/shared';
 import type { Agenda, Ballot, BallotOptionCiphertext } from '@ovote/shared';
 import { api } from '../api.js';
@@ -76,10 +76,36 @@ export function buildBallot(
     ciphertext: { c1: toB64Url(c.ct.c1), c2: toB64Url(c.ct.c2) },
     proof: c.proof.parts,
   }));
+
+  // Prove the homomorphic sum of all option ciphertexts encrypts exactly 1,
+  // i.e. the voter picked exactly one option. Without this a malicious client
+  // could submit all-zero or all-one ballots — each option proof would still
+  // pass individually, but the tally would be skewed.
+  const sumR = choices.reduce((acc, c) => Ristretto.scalarAdd(acc, c.randomness), 0n);
+  const pk = Ristretto.pointFromB64Url(agenda.key.groupPk);
+  const sumC1 = choices.reduce<Ristretto.Point>(
+    (acc, c) => Ristretto.pointAdd(acc, Ristretto.pointFromBytes(c.ct.c1)),
+    Ristretto.ZERO,
+  );
+  const sumC2 = choices.reduce<Ristretto.Point>(
+    (acc, c) => Ristretto.pointAdd(acc, Ristretto.pointFromBytes(c.ct.c2)),
+    Ristretto.ZERO,
+  );
+  const sumC2MinusOne = Ristretto.pointSub(sumC2, Ristretto.basePointMul(1n));
+  const sumProof = Schnorr.proveEqualityOfDiscreteLogs({
+    domain: `ballot-sum:${agenda.id}`,
+    x: sumR,
+    g1: Ristretto.BASE,
+    h1: sumC1,
+    g2: pk,
+    h2: sumC2MinusOne,
+  });
+
   return {
     id,
     agendaId: agenda.id,
     options,
+    sumProof,
     credential: {
       nonce: toB64Url(credential.preparedNonce),
       signature: toB64Url(credential.signature),

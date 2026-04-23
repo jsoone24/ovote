@@ -93,13 +93,15 @@ Response: `200 { "added": <number> }`.
 ## Credentials
 
 ### `POST /credentials/blind-sign` — voter (session required)
-Voter sends a blinded message, registrar returns the blind signature. Requires the caller to be on the eligibility roster for `agendaId` and not to have requested a credential yet. 10/min. One credential per voter per agenda.
+Voter sends a blinded message, registrar returns the blind signature. Requires the caller to be on the eligibility roster for `agendaId`. 10/min. One credential per voter per agenda.
 
 ```json
 { "agendaId": "…uuid…", "blindedMessage": "…base64url…" }
 ```
 
 Response: `200 { "blindSignature": "…base64url…" }`.
+
+**Retry semantics.** The first successful call persists `(blindedMessage, blindSignature)`. Replaying the exact same request returns the stored signature unchanged — so a dropped HTTP response never locks the voter out. A second call with a *different* `blindedMessage` returns `409`, keeping the one-credential-per-voter-per-agenda invariant.
 
 ---
 
@@ -113,6 +115,10 @@ Response: `200 { "blindSignature": "…base64url…" }`.
   "id":       "…uuid…",
   "agendaId": "…uuid…",
   "options":  [ /* one per agenda option, each with ciphertext and disjunctive ZKP */ ],
+  "sumProof": {
+    "commitment": "…base64url A.B…",
+    "response":   "…base64url scalar…"
+  },
   "credential": {
     "nonce":     "…base64url prepared credential nonce…",
     "signature": "…base64url RSA-BSSA signature…"
@@ -122,7 +128,7 @@ Response: `200 { "blindSignature": "…base64url…" }`.
 }
 ```
 
-The API re-runs every disjunctive proof ([services/ballot-verifier.ts](../apps/api/src/services/ballot-verifier.ts)) before forwarding to the chain. Duplicate credentials are rejected on-chain (`409`).
+The API re-runs every disjunctive proof and the `sumProof` (a Chaum-Pedersen equality-of-DLogs proof that the homomorphic sum of every option ciphertext encrypts exactly `1`) inside [services/ballot-verifier.ts](../apps/api/src/services/ballot-verifier.ts) before forwarding to the chain. Without `sumProof` a malicious client could submit all-zero or all-one ballots — each individual option proof would still pass, but the tally would be skewed. Duplicate credentials are rejected on-chain (`409`).
 
 Response: `201 { "id": "…", "status": "recorded" }`.
 
@@ -160,7 +166,7 @@ Public. Lists all submitted shares for the agenda.
 ## Results
 
 ### `POST /results/publish` — admin only
-Combines submitted trustee shares off-chain (no secrets involved — just Lagrange interpolation over Ristretto points), solves a small discrete log per option, and writes the tally to the chain. Fails with `409` if any option lacks a quorum of shares.
+Combines submitted trustee shares off-chain (no secrets involved — just Lagrange interpolation over Ristretto points), solves a small discrete log per option, and writes the tally to the chain. The chain (both the in-memory driver and the Fabric chaincode) independently verifies that each option has at least `threshold` submitted decryption shares before persisting the tally, so a compromised admin identity cannot publish a fabricated result. Fails with `409` if any option lacks a quorum of shares.
 
 ```json
 { "agendaId": "…uuid…" }

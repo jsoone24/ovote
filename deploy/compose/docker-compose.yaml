@@ -25,8 +25,26 @@ services:
       OVOTE_CHAIN_DRIVER: ${OVOTE_CHAIN_DRIVER:-memory}
       OVOTE_BLIND_RSA_MODULUS: ${OVOTE_BLIND_RSA_MODULUS:-3072}
       OVOTE_ADMIN_BOOTSTRAP_EMAIL: ${OVOTE_ADMIN_BOOTSTRAP_EMAIL:-}
+      OVOTE_CORS_ORIGINS: ${OVOTE_CORS_ORIGINS:-*}
+      OVOTE_TRUST_PROXY: ${OVOTE_TRUST_PROXY:-false}
+      OVOTE_SECRET_KEY: ${OVOTE_SECRET_KEY:-}
+      OVOTE_SMTP_URL: ${OVOTE_SMTP_URL:-}
+      OVOTE_SMTP_FROM: ${OVOTE_SMTP_FROM:-}
+      # Fabric gateway config — only consumed when OVOTE_CHAIN_DRIVER=fabric.
+      # Paths are inside the container: bind-mount ../fabric/crypto-config
+      # via the fabric-crypto volume below.
+      OVOTE_FABRIC_CHANNEL: ${OVOTE_FABRIC_CHANNEL:-}
+      OVOTE_FABRIC_CHAINCODE: ${OVOTE_FABRIC_CHAINCODE:-}
+      OVOTE_FABRIC_MSP_ID: ${OVOTE_FABRIC_MSP_ID:-}
+      OVOTE_FABRIC_PEER_ENDPOINT: ${OVOTE_FABRIC_PEER_ENDPOINT:-}
+      OVOTE_FABRIC_PEER_HOSTNAME_OVERRIDE: ${OVOTE_FABRIC_PEER_HOSTNAME_OVERRIDE:-}
+      OVOTE_FABRIC_TLS_ROOT_CERT: ${OVOTE_FABRIC_TLS_ROOT_CERT:-}
+      OVOTE_FABRIC_SIGNCERT: ${OVOTE_FABRIC_SIGNCERT:-}
+      OVOTE_FABRIC_KEYSTORE_DIR: ${OVOTE_FABRIC_KEYSTORE_DIR:-}
     volumes:
       - api-data:/data
+      # Fabric crypto material is mounted via docker-compose.fabric.yaml when
+      # OVOTE_CHAIN_DRIVER=fabric — keeps memory-mode startup dependency-free.
     ports:
       - "3000:3000"
     networks:

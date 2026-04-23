@@ -1,0 +1,17 @@
+# docker-compose.fabric.yaml — overlay that binds Fabric crypto material into
+# the api container. Apply it alongside docker-compose.yaml when running with
+# OVOTE_CHAIN_DRIVER=fabric:
+#
+#   docker compose \
+#     -f docker-compose.yaml \
+#     -f docker-compose.fabric.yaml \
+#     up
+#
+# OVOTE_FABRIC_CRYPTO_HOST_DIR must point at the host directory that holds
+# cryptogen/fabric-ca output (peerOrganizations/...). Everything is mounted
+# read-only; the API never writes into it.
+
+services:
+  api:
+    volumes:
+      - ${OVOTE_FABRIC_CRYPTO_HOST_DIR}:/fabric:ro
