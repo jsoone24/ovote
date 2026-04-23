@@ -65,4 +65,28 @@ export class VoterRegistry {
       )
       .run(voterId, agendaId, new Date().toISOString());
   }
+
+  listAll(): Voter[] {
+    return this.db
+      .prepare(`SELECT id, email, role FROM voters ORDER BY email ASC`)
+      .all() as Voter[];
+  }
+
+  setRole(voterId: string, role: Voter['role']): void {
+    const res = this.db
+      .prepare(`UPDATE voters SET role = ? WHERE id = ?`)
+      .run(role, voterId);
+    if (res.changes === 0) throw new Error(`voter ${voterId} not found`);
+  }
+
+  listEligibility(agendaId: string): { voterId: string; email: string }[] {
+    return this.db
+      .prepare(
+        `SELECT v.id AS voterId, v.email AS email
+         FROM eligibility e JOIN voters v ON v.id = e.voter_id
+         WHERE e.agenda_id = ?
+         ORDER BY v.email ASC`,
+      )
+      .all(agendaId) as { voterId: string; email: string }[];
+  }
 }

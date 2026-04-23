@@ -61,4 +61,36 @@ export const api = {
       body: JSON.stringify({ agendaId }),
     }),
   getResult: (agendaId: string) => request<TallyProof>(`/results/${agendaId}`),
+
+  // Admin APIs — every call here must be made by a session with role=admin.
+  createAgenda: (body: {
+    title: string;
+    description: string;
+    openAt: string;
+    closeAt: string;
+    options: { id: string; label: string }[];
+    key: { groupPk: string; threshold: number; n: number; trustees: { index: number; pk: string }[] };
+  }) => request<Agenda>('/agendas', { method: 'POST', body: JSON.stringify(body) }),
+  openAgenda: (agendaId: string) =>
+    request<{ status: string }>(`/agendas/${agendaId}/open`, { method: 'POST' }),
+  closeAgenda: (agendaId: string) =>
+    request<{ status: string }>(`/agendas/${agendaId}/close`, { method: 'POST' }),
+  setEligibility: (agendaId: string, emails: string[]) =>
+    request<{ added: number }>(`/agendas/${agendaId}/eligibility`, {
+      method: 'POST',
+      body: JSON.stringify({ emails }),
+    }),
+  listEligibility: (agendaId: string) =>
+    request<{ voters: { voterId: string; email: string }[] }>(
+      `/admin/agendas/${agendaId}/eligibility`,
+    ),
+  listVoters: () =>
+    request<{ voters: { id: string; email: string; role: 'voter' | 'admin' | 'trustee' }[] }>(
+      '/admin/voters',
+    ),
+  setVoterRole: (email: string, role: 'voter' | 'admin' | 'trustee') =>
+    request<{ voter: { id: string; email: string; role: string } }>('/admin/voters/role', {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    }),
 };

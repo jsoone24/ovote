@@ -17,6 +17,7 @@ import { credentialRoutes } from './routes/credentials.js';
 import { ballotRoutes } from './routes/ballots.js';
 import { resultRoutes } from './routes/results.js';
 import { trusteeRoutes } from './routes/trustees.js';
+import { adminRoutes } from './routes/admin.js';
 
 export interface AppDeps {
   config: Config;
@@ -67,6 +68,7 @@ export async function buildServer(deps: AppDeps) {
   await app.register(credentialRoutes({ chain, signer, registry, sessions, otp }));
   await app.register(ballotRoutes({ chain }));
   await app.register(trusteeRoutes({ chain, sessions, registry }));
+  await app.register(adminRoutes({ registry, sessions, otp }));
   await app.register(resultRoutes(chain));
 
   app.addHook('onClose', async () => {

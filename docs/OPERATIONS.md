@@ -236,13 +236,30 @@ The final tally is fetchable at `GET /results/$AGENDA_ID` and shown on the Agend
 | Cast ballot                       | ✅     | `POST /ballots` |
 | View published result             | ✅     | `GET /results/:id` |
 | Trustee submit decryption shares  | ✅     | `POST /decryption-shares` |
-| **Create agenda**                 | ❌     | `POST /agendas` |
-| **Open / close agenda**           | ❌     | `POST /agendas/:id/{open,close}` |
-| **Manage eligibility roster**     | ❌     | `POST /agendas/:id/eligibility` |
-| **Publish tally**                 | ❌     | `POST /results/publish` |
-| **Promote voter → admin/trustee** | ❌     | SQLite `UPDATE` |
+| Create agenda + generate trustee keys | ✅ | `POST /agendas` |
+| Open / close agenda               | ✅     | `POST /agendas/:id/{open,close}` |
+| Manage eligibility roster         | ✅     | `POST /agendas/:id/eligibility`, `GET /admin/agendas/:id/eligibility` |
+| Publish tally                     | ✅     | `POST /results/publish` |
+| Promote voter → admin/trustee     | ✅     | `POST /admin/voters/role` |
 
-Admin UI is deliberately out of scope for v1 — consortium operators typically drive these via an internal CLI. Contributions welcome.
+### Admin web UI
+
+Visit `/admin` while signed in as a user with `role=admin`. Non-admins who
+hit any `/admin/*` route are redirected to `/agendas`. The admin surface has
+two tabs:
+
+- **agendas** — list all agendas (including drafts) with status chips. Click
+  an agenda to see detail: state-transition buttons, eligibility editor
+  (only active while draft), trustee submission progress, and the publish
+  button (enabled once every option has a quorum of shares).
+- **users** — list every registered voter and change their role.
+
+The **new agenda** form does threshold-key generation in the browser via
+`Threshold.trustedDealerKeygen`. After generation the UI shows every
+trustee's secret share exactly once — copy it into a secure out-of-band
+channel to that trustee before clicking **create agenda**. The server never
+receives the secret shares, only the public group key and per-trustee public
+shares.
 
 ---
 

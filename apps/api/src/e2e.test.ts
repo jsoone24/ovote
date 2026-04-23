@@ -3,7 +3,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import { BlindSignature, ElGamal, Disjunctive, Ristretto, Threshold } from '@ovote/crypto';
 import { toB64Url } from '@ovote/shared';
@@ -15,11 +14,9 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
   let app: FastifyInstance;
   let lastOtp: string | undefined;
 
-  let dbPath: string;
-
   beforeAll(async () => {
     tmp = mkdtempSync(join(tmpdir(), 'ovote-api-test-'));
-    dbPath = join(tmp, 'test.sqlite');
+    const dbPath = join(tmp, 'test.sqlite');
     const config = loadConfig({
       OVOTE_API_PORT: '0',
       OVOTE_DB_PATH: dbPath,
@@ -231,18 +228,32 @@ describe('API end-to-end: create agenda -> issue credential -> cast ballot -> cl
     });
     expect(closeRes.statusCode).toBe(200);
 
-    // 13) Register two trustees and promote them directly in the DB (the
-    //     bootstrap admin is the only out-of-band role today; trustees are
-    //     set up by operators, not through a public API).
+    // 13) Register two trustees and promote them via the admin API (so the
+    //     role-management endpoint is exercised end-to-end rather than us
+    //     poking the DB directly).
     const trusteeEmails = [`t1-${randomUUID()}@example.test`, `t2-${randomUUID()}@example.test`];
     const trusteeTokens: string[] = [];
     for (const email of trusteeEmails) {
       trusteeTokens.push(await login(email));
     }
-    const sideDb = new Database(dbPath);
-    const stmt = sideDb.prepare(`UPDATE voters SET role = 'trustee' WHERE email = ?`);
-    for (const email of trusteeEmails) stmt.run(email);
-    sideDb.close();
+    for (const email of trusteeEmails) {
+      const roleRes = await app.inject({
+        method: 'POST',
+        url: '/admin/voters/role',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { email, role: 'trustee' },
+      });
+      expect(roleRes.statusCode).toBe(200);
+    }
+
+    // Non-admin hitting the admin endpoint must be rejected
+    const forbiddenRes = await app.inject({
+      method: 'POST',
+      url: '/admin/voters/role',
+      headers: { authorization: `Bearer ${trusteeTokens[0]}` },
+      payload: { email: trusteeEmails[1], role: 'voter' },
+    });
+    expect(forbiddenRes.statusCode).toBe(403);
 
     // 14) GET aggregate — public endpoint, returns the homomorphic sum of
     //     ciphertexts per option. With one ballot for Alice (vote=1, bob=0)

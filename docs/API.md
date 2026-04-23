@@ -173,6 +173,46 @@ Public. Returns the published tally.
 
 ---
 
+## Admin
+
+These endpoints back the `/admin` web UI and are gated by `role === 'admin'`.
+
+### `GET /admin/voters` — admin only
+Lists every registered voter so the admin UI can render the role-management table.
+
+Response:
+```json
+{
+  "voters": [
+    { "id": "…uuid…", "email": "alice@org.test", "role": "admin" },
+    { "id": "…uuid…", "email": "bob@org.test",   "role": "voter" }
+  ]
+}
+```
+
+### `POST /admin/voters/role` — admin only
+Promotes or demotes a voter. The voter must already exist (they're created on first OTP login); the admin flips their role here.
+
+```json
+{ "email": "bob@org.test", "role": "trustee" }
+```
+
+Response: `200 { "voter": { "id": "…", "email": "…", "role": "trustee" } }`. `404` if the email is not registered.
+
+### `GET /admin/agendas/:agendaId/eligibility` — admin only
+Returns the current eligibility roster for an agenda, emails included, so the admin UI can show who's been added.
+
+Response:
+```json
+{
+  "voters": [
+    { "voterId": "…uuid…", "email": "alice@org.test" }
+  ]
+}
+```
+
+---
+
 ## Error shape
 
 ```json
