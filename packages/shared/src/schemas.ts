@@ -6,9 +6,10 @@ import type {
   Ballot,
   BallotCredential,
   BallotOptionCiphertext,
-  BlindSignature,
   Ciphertext,
   DisjunctiveProofPart,
+  OptionResult,
+  SchnorrProof,
   TallyProof,
   TrusteeDecryptionShare,
   TrusteePublicShare,
@@ -16,6 +17,7 @@ import type {
 
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const B64URL_REGEX = /^[A-Za-z0-9_-]+$/;
+const OPTION_ID_REGEX = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 export const UuidSchema = z.string().regex(UUID_V4_REGEX, 'expected UUID v4');
 export const AgendaIdSchema = UuidSchema;
@@ -26,7 +28,7 @@ export const AgendaStatusSchema = z.enum(['draft', 'open', 'closed', 'tallied'])
 
 export const AgendaOptionSchema = z
   .object({
-    id: z.string().min(1),
+    id: z.string().regex(OPTION_ID_REGEX, 'option id must be kebab/snake lowercase'),
     label: z.string().min(1),
   })
   .strict();
@@ -34,31 +36,34 @@ export const AgendaOptionSchema = z
 export const TrusteePublicShareSchema = z
   .object({
     index: z.number().int().positive(),
-    publicShare: B64UrlSchema,
+    pk: B64UrlSchema,
   })
   .strict();
 
 export const AgendaKeySchema = z
   .object({
-    groupPublicKey: B64UrlSchema,
-    shares: z.array(TrusteePublicShareSchema).min(1),
+    groupPk: B64UrlSchema,
     threshold: z.number().int().positive(),
     n: z.number().int().positive(),
+    trustees: z.array(TrusteePublicShareSchema).min(1),
   })
   .strict()
   .refine((k) => k.threshold <= k.n, 'threshold must be <= n')
-  .refine((k) => k.shares.length === k.n, 'shares length must equal n');
+  .refine((k) => k.trustees.length === k.n, 'trustees length must equal n');
 
 export const AgendaSchema = z
   .object({
     id: AgendaIdSchema,
     title: z.string().min(1),
     description: z.string(),
-    options: z.array(AgendaOptionSchema).min(2),
     status: AgendaStatusSchema,
     openAt: IsoDateTimeSchema,
     closeAt: IsoDateTimeSchema,
+    options: z.array(AgendaOptionSchema).min(2),
     key: AgendaKeySchema,
+    registrarBlindPk: B64UrlSchema,
+    createdBy: z.string(),
+    createdAt: IsoDateTimeSchema,
   })
   .strict()
   .refine((a) => new Date(a.openAt).getTime() < new Date(a.closeAt).getTime(), 'openAt must be before closeAt');
@@ -74,53 +79,67 @@ export const DisjunctiveProofPartSchema = z
   .object({
     challenge: B64UrlSchema,
     response: B64UrlSchema,
+    commitmentA: B64UrlSchema,
+    commitmentB: B64UrlSchema,
   })
   .strict();
 
 export const BallotOptionCiphertextSchema = z
   .object({
-    optionId: z.string().min(1),
-    ct: CiphertextSchema,
+    optionId: z.string().regex(OPTION_ID_REGEX),
+    ciphertext: CiphertextSchema,
     proof: z.array(DisjunctiveProofPartSchema).min(2),
-  })
-  .strict();
-
-export const BlindSignatureSchema = z
-  .object({
-    sigma: B64UrlSchema,
   })
   .strict();
 
 export const BallotCredentialSchema = z
   .object({
-    token: B64UrlSchema,
-    signature: BlindSignatureSchema,
+    nonce: B64UrlSchema,
+    signature: B64UrlSchema,
   })
   .strict();
 
 export const BallotSchema = z
   .object({
+    id: UuidSchema,
     agendaId: AgendaIdSchema,
+    options: z.array(BallotOptionCiphertextSchema).min(2),
     credential: BallotCredentialSchema,
-    ciphertexts: z.array(BallotOptionCiphertextSchema).min(2),
-    sumProof: z.array(DisjunctiveProofPartSchema).min(2),
-    bucketedTimestamp: IsoDateTimeSchema,
+    castAt: IsoDateTimeSchema,
+    transcript: z.string(),
+  })
+  .strict();
+
+export const SchnorrProofSchema = z
+  .object({
+    commitment: z.string().min(1),
+    response: B64UrlSchema,
   })
   .strict();
 
 export const TrusteeDecryptionShareSchema = z
   .object({
-    index: z.number().int().positive(),
+    agendaId: AgendaIdSchema,
+    optionId: z.string().regex(OPTION_ID_REGEX),
+    trusteeIndex: z.number().int().positive(),
     share: B64UrlSchema,
-    proof: DisjunctiveProofPartSchema,
+    proof: SchnorrProofSchema,
+    submittedAt: IsoDateTimeSchema,
+  })
+  .strict();
+
+export const OptionResultSchema = z
+  .object({
+    optionId: z.string().regex(OPTION_ID_REGEX),
+    count: z.number().int().nonnegative(),
   })
   .strict();
 
 export const TallyProofSchema = z
   .object({
-    aggregate: CiphertextSchema,
-    decryptionShares: z.array(TrusteeDecryptionShareSchema).min(1),
-    plaintext: z.record(z.string().min(1), z.number().int().nonnegative()),
+    agendaId: AgendaIdSchema,
+    results: z.array(OptionResultSchema).min(1),
+    publishedAt: IsoDateTimeSchema,
   })
   .strict();
 
@@ -135,20 +154,22 @@ type InferAgendaOption = z.infer<typeof AgendaOptionSchema>;
 type InferCiphertext = z.infer<typeof CiphertextSchema>;
 type InferDisjunctiveProofPart = z.infer<typeof DisjunctiveProofPartSchema>;
 type InferBallotOptionCiphertext = z.infer<typeof BallotOptionCiphertextSchema>;
-type InferBlindSignature = z.infer<typeof BlindSignatureSchema>;
 type InferBallotCredential = z.infer<typeof BallotCredentialSchema>;
 type InferTrusteePublicShare = z.infer<typeof TrusteePublicShareSchema>;
 type InferTrusteeDecryptionShare = z.infer<typeof TrusteeDecryptionShareSchema>;
+type InferSchnorrProof = z.infer<typeof SchnorrProofSchema>;
+type InferOptionResult = z.infer<typeof OptionResultSchema>;
 
 export type _SchemaShapeChecks = [
   Expect<Equal<InferAgendaOption, AgendaOption>>,
   Expect<Equal<InferCiphertext, Ciphertext>>,
   Expect<Equal<InferDisjunctiveProofPart, DisjunctiveProofPart>>,
   Expect<Equal<InferBallotOptionCiphertext, BallotOptionCiphertext>>,
-  Expect<Equal<InferBlindSignature, BlindSignature>>,
   Expect<Equal<InferBallotCredential, BallotCredential>>,
   Expect<Equal<InferTrusteePublicShare, TrusteePublicShare>>,
+  Expect<Equal<InferSchnorrProof, SchnorrProof>>,
   Expect<Equal<InferTrusteeDecryptionShare, TrusteeDecryptionShare>>,
+  Expect<Equal<InferOptionResult, OptionResult>>,
   Expect<Equal<InferAgendaKey, AgendaKey>>,
   Expect<Equal<InferAgenda, Agenda>>,
   Expect<Equal<InferBallot, Ballot>>,

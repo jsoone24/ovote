@@ -12,25 +12,28 @@ export interface AgendaOption {
 
 export interface TrusteePublicShare {
   index: number;
-  publicShare: B64Url;
+  pk: B64Url;
 }
 
 export interface AgendaKey {
-  groupPublicKey: B64Url;
-  shares: TrusteePublicShare[];
+  groupPk: B64Url;
   threshold: number;
   n: number;
+  trustees: TrusteePublicShare[];
 }
 
 export interface Agenda {
   id: AgendaId;
   title: string;
   description: string;
-  options: AgendaOption[];
   status: AgendaStatus;
   openAt: IsoDateTime;
   closeAt: IsoDateTime;
+  options: AgendaOption[];
   key: AgendaKey;
+  registrarBlindPk: B64Url;
+  createdBy: string;
+  createdAt: IsoDateTime;
 }
 
 export interface Ciphertext {
@@ -41,39 +44,51 @@ export interface Ciphertext {
 export interface DisjunctiveProofPart {
   challenge: B64Url;
   response: B64Url;
+  commitmentA: B64Url;
+  commitmentB: B64Url;
 }
 
 export interface BallotOptionCiphertext {
   optionId: string;
-  ct: Ciphertext;
+  ciphertext: Ciphertext;
   proof: DisjunctiveProofPart[];
 }
 
-export interface BlindSignature {
-  sigma: B64Url;
-}
-
 export interface BallotCredential {
-  token: B64Url;
-  signature: BlindSignature;
+  nonce: B64Url;
+  signature: B64Url;
 }
 
 export interface Ballot {
+  id: Uuid;
   agendaId: AgendaId;
+  options: BallotOptionCiphertext[];
   credential: BallotCredential;
-  ciphertexts: BallotOptionCiphertext[];
-  sumProof: DisjunctiveProofPart[];
-  bucketedTimestamp: IsoDateTime;
+  castAt: IsoDateTime;
+  transcript: string;
+}
+
+export interface SchnorrProof {
+  commitment: string;
+  response: B64Url;
 }
 
 export interface TrusteeDecryptionShare {
-  index: number;
+  agendaId: AgendaId;
+  optionId: string;
+  trusteeIndex: number;
   share: B64Url;
-  proof: DisjunctiveProofPart;
+  proof: SchnorrProof;
+  submittedAt: IsoDateTime;
+}
+
+export interface OptionResult {
+  optionId: string;
+  count: number;
 }
 
 export interface TallyProof {
-  aggregate: Ciphertext;
-  decryptionShares: TrusteeDecryptionShare[];
-  plaintext: Record<string, number>;
+  agendaId: AgendaId;
+  results: OptionResult[];
+  publishedAt: IsoDateTime;
 }

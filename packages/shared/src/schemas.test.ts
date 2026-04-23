@@ -5,66 +5,66 @@ const validAgenda = {
   id: '11111111-1111-4111-8111-111111111111',
   title: 'Test',
   description: 'A test agenda',
+  status: 'open' as const,
+  openAt: '2026-04-01T00:00:00Z',
+  closeAt: '2026-04-30T00:00:00Z',
   options: [
     { id: 'yes', label: 'Yes' },
     { id: 'no', label: 'No' },
   ],
-  status: 'open' as const,
-  openAt: '2026-04-01T00:00:00Z',
-  closeAt: '2026-04-30T00:00:00Z',
   key: {
-    groupPublicKey: 'AAAA',
+    groupPk: 'AAAA',
     threshold: 3,
     n: 5,
-    shares: [
-      { index: 1, publicShare: 'AQID' },
-      { index: 2, publicShare: 'AQIE' },
-      { index: 3, publicShare: 'AQIF' },
-      { index: 4, publicShare: 'AQIG' },
-      { index: 5, publicShare: 'AQIH' },
+    trustees: [
+      { index: 1, pk: 'AQID' },
+      { index: 2, pk: 'AQIE' },
+      { index: 3, pk: 'AQIF' },
+      { index: 4, pk: 'AQIG' },
+      { index: 5, pk: 'AQIH' },
     ],
   },
+  registrarBlindPk: 'cGs',
+  createdBy: 'x509::CN=admin',
+  createdAt: '2026-03-30T00:00:00Z',
 };
 
 const validBallot = {
+  id: '22222222-2222-4222-8222-222222222222',
   agendaId: '11111111-1111-4111-8111-111111111111',
-  credential: {
-    token: 'dG9rZW4',
-    signature: { sigma: 'c2ln' },
-  },
-  ciphertexts: [
+  options: [
     {
       optionId: 'yes',
-      ct: { c1: 'AAAA', c2: 'BBBB' },
+      ciphertext: { c1: 'AAAA', c2: 'BBBB' },
       proof: [
-        { challenge: 'CCCC', response: 'DDDD' },
-        { challenge: 'EEEE', response: 'FFFF' },
+        { challenge: 'CCCC', response: 'DDDD', commitmentA: 'aaaa', commitmentB: 'bbbb' },
+        { challenge: 'EEEE', response: 'FFFF', commitmentA: 'cccc', commitmentB: 'dddd' },
       ],
     },
     {
       optionId: 'no',
-      ct: { c1: 'GGGG', c2: 'HHHH' },
+      ciphertext: { c1: 'GGGG', c2: 'HHHH' },
       proof: [
-        { challenge: 'IIII', response: 'JJJJ' },
-        { challenge: 'KKKK', response: 'LLLL' },
+        { challenge: 'IIII', response: 'JJJJ', commitmentA: 'eeee', commitmentB: 'ffff' },
+        { challenge: 'KKKK', response: 'LLLL', commitmentA: 'gggg', commitmentB: 'hhhh' },
       ],
     },
   ],
-  sumProof: [
-    { challenge: 'MMMM', response: 'NNNN' },
-    { challenge: 'OOOO', response: 'PPPP' },
-  ],
-  bucketedTimestamp: '2026-04-15T12:00:00Z',
+  credential: {
+    nonce: 'bm9uY2U',
+    signature: 'c2ln',
+  },
+  castAt: '2026-04-15T12:00:00Z',
+  transcript: '{}',
 };
 
 const validTallyProof = {
-  aggregate: { c1: 'AAAA', c2: 'BBBB' },
-  decryptionShares: [
-    { index: 1, share: 'c2hh', proof: { challenge: 'cDE', response: 'cjE' } },
-    { index: 2, share: 'c2hi', proof: { challenge: 'cDI', response: 'cjI' } },
-    { index: 3, share: 'c2hj', proof: { challenge: 'cDM', response: 'cjM' } },
+  agendaId: '11111111-1111-4111-8111-111111111111',
+  results: [
+    { optionId: 'yes', count: 42 },
+    { optionId: 'no', count: 13 },
   ],
-  plaintext: { yes: 42, no: 13 },
+  publishedAt: '2026-05-01T00:00:00Z',
 };
 
 describe('AgendaSchema', () => {
@@ -78,7 +78,7 @@ describe('AgendaSchema', () => {
     expect(AgendaSchema.safeParse(bad).success).toBe(false);
   });
 
-  it('rejects when shares length does not match n', () => {
+  it('rejects when trustees length does not match n', () => {
     const bad = structuredClone(validAgenda);
     bad.key.n = 6;
     expect(AgendaSchema.safeParse(bad).success).toBe(false);
@@ -103,7 +103,7 @@ describe('AgendaSchema', () => {
 
   it('rejects malformed base64url', () => {
     const bad = structuredClone(validAgenda);
-    bad.key.groupPublicKey = 'has+plus';
+    bad.key.groupPk = 'has+plus';
     expect(AgendaSchema.safeParse(bad).success).toBe(false);
   });
 
@@ -125,9 +125,9 @@ describe('BallotSchema', () => {
     expect(BallotSchema.safeParse(bad).success).toBe(false);
   });
 
-  it('rejects ciphertext count < 2', () => {
+  it('rejects option count < 2', () => {
     const bad = structuredClone(validBallot);
-    bad.ciphertexts = [bad.ciphertexts[0]!];
+    bad.options = [bad.options[0]!];
     expect(BallotSchema.safeParse(bad).success).toBe(false);
   });
 
@@ -138,7 +138,7 @@ describe('BallotSchema', () => {
 
   it('rejects malformed timestamp', () => {
     const bad = structuredClone(validBallot);
-    bad.bucketedTimestamp = 'April 15, 2026';
+    bad.castAt = 'April 15, 2026';
     expect(BallotSchema.safeParse(bad).success).toBe(false);
   });
 });
@@ -148,15 +148,15 @@ describe('TallyProofSchema', () => {
     expect(() => TallyProofSchema.parse(validTallyProof)).not.toThrow();
   });
 
-  it('rejects negative plaintext counts', () => {
+  it('rejects negative counts', () => {
     const bad = structuredClone(validTallyProof);
-    bad.plaintext.yes = -1;
+    bad.results[0]!.count = -1;
     expect(TallyProofSchema.safeParse(bad).success).toBe(false);
   });
 
-  it('rejects non-integer plaintext counts', () => {
+  it('rejects non-integer counts', () => {
     const bad = structuredClone(validTallyProof);
-    bad.plaintext.yes = 1.5;
+    bad.results[0]!.count = 1.5;
     expect(TallyProofSchema.safeParse(bad).success).toBe(false);
   });
 });
