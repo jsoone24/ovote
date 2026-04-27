@@ -44,4 +44,3 @@ export function pointsToTranscriptBytes(points: Point[]): Uint8Array {
   for (let i = 0; i < points.length; i++) out.set(pointToBytes(points[i]!), i * 32);
   return out;
 }
-

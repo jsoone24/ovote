@@ -30,6 +30,7 @@ export const api = {
       '/auth/otp/verify',
       { method: 'POST', body: JSON.stringify({ email, code }) },
     ),
+  logout: () => request<{ status: string }>('/auth/logout', { method: 'POST' }),
   listAgendas: () => request<{ agendas: Agenda[] }>('/agendas'),
   getAgenda: (id: string) => request<Agenda>(`/agendas/${id}`),
   blindSign: (agendaId: string, blindedMessage: string) =>

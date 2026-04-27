@@ -83,14 +83,30 @@ export class MemoryChain implements ChainGateway {
     }
     const validOptionIds = new Set(a.options.map((o) => o.id));
     const seen = new Set<string>();
+    let totalCount = 0;
     for (const r of result.results) {
       if (!validOptionIds.has(r.optionId)) throw new Error(`tally option ${r.optionId} not on agenda`);
       if (seen.has(r.optionId)) throw new Error(`tally repeats option ${r.optionId}`);
       seen.add(r.optionId);
+      if (!Number.isInteger(r.count) || r.count < 0) {
+        throw new Error(`option ${r.optionId} has invalid count ${r.count}`);
+      }
+      totalCount += r.count;
       const n = sharesPerOption.get(r.optionId)?.size ?? 0;
       if (n < a.key.threshold) {
         throw new Error(`option ${r.optionId} has ${n} decryption shares, need threshold=${a.key.threshold}`);
       }
+    }
+
+    // Sanity cross-check: every ballot encodes exactly one choice (proven per
+    // ballot by the sum proof). So ∑ counts must equal the number of ballots
+    // cast. This doesn't re-verify decryption on-chain (that would require
+    // porting ristretto255 + Schnorr + Lagrange + a small dlog solver to Go —
+    // tracked as v2), but it does refuse any tally whose shape contradicts
+    // the ballot box and thus catches a compromised admin fabricating totals.
+    const ballots = this.ballots.get(result.agendaId) ?? new Map();
+    if (totalCount !== ballots.size) {
+      throw new Error(`tally counts sum to ${totalCount} but ${ballots.size} ballots were cast`);
     }
 
     this.results.set(result.agendaId, result);

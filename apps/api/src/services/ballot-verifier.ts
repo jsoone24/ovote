@@ -7,6 +7,17 @@ import { fromB64Url } from '@ovote/shared';
 // run in a voter's or auditor's browser using @ovote/crypto — this function is
 // just the server-side copy.
 export async function verifyBallot(agenda: Agenda, ballot: Ballot): Promise<{ ok: true } | { ok: false; reason: string }> {
+  // The public /ballots endpoint is untrusted input. Wrap the whole verifier
+  // so that malformed base64url / curve points surface as a validation failure
+  // (the caller maps this to 400) instead of leaking as a 500.
+  try {
+    return await verifyBallotInner(agenda, ballot);
+  } catch (err) {
+    return { ok: false, reason: `malformed ballot: ${(err as Error).message}` };
+  }
+}
+
+async function verifyBallotInner(agenda: Agenda, ballot: Ballot): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (ballot.agendaId !== agenda.id) return { ok: false, reason: 'agendaId mismatch' };
 
   const agendaOptionIds = new Set(agenda.options.map((o) => o.id));
@@ -71,15 +82,11 @@ export async function verifyBallot(agenda: Agenda, ballot: Ballot): Promise<{ ok
   // prepare() is randomized, so the server cannot reproduce it). Registrar's
   // public key comes from the agenda record — the chain is the single source
   // of truth for the key.
-  try {
-    const registrarPk = await BlindSignature.importPublicKey(agenda.registrarBlindPk);
-    const preparedBytes = fromB64Url(ballot.credential.nonce);
-    const sigBytes = fromB64Url(ballot.credential.signature);
-    const ok = await BlindSignature.verify(registrarPk, sigBytes, preparedBytes);
-    if (!ok) return { ok: false, reason: 'credential signature invalid' };
-  } catch (err) {
-    return { ok: false, reason: `credential verification error: ${(err as Error).message}` };
-  }
+  const registrarPk = await BlindSignature.importPublicKey(agenda.registrarBlindPk);
+  const preparedBytes = fromB64Url(ballot.credential.nonce);
+  const sigBytes = fromB64Url(ballot.credential.signature);
+  const ok = await BlindSignature.verify(registrarPk, sigBytes, preparedBytes);
+  if (!ok) return { ok: false, reason: 'credential signature invalid' };
 
   return { ok: true };
 }

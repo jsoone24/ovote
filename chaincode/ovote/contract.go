@@ -285,6 +285,7 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 		sharesPerOption[s.OptionId][s.TrusteeIndex] = struct{}{}
 	}
 	seen := map[string]struct{}{}
+	totalCount := 0
 	for _, res := range r.Results {
 		if !optionExists(agenda, res.OptionId) {
 			return fmt.Errorf("tally option %q not on agenda", res.OptionId)
@@ -296,10 +297,24 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 		if res.Count < 0 {
 			return fmt.Errorf("tally count for %q is negative", res.OptionId)
 		}
+		totalCount += res.Count
 		if len(sharesPerOption[res.OptionId]) < agenda.Key.Threshold {
 			return fmt.Errorf("option %q has %d decryption shares, need threshold=%d",
 				res.OptionId, len(sharesPerOption[res.OptionId]), agenda.Key.Threshold)
 		}
+	}
+
+	// Every ballot encodes exactly one choice (enforced per-ballot by the
+	// sum proof at CastBallot). So the submitted counts must sum to the number
+	// of ballots on the board — a cheap cross-check that refuses any tally
+	// whose shape contradicts the bulletin board even though we can't re-run
+	// the decryption crypto here.
+	ballots, err := c.ListBallots(ctx, agenda.Id)
+	if err != nil {
+		return fmt.Errorf("load ballots: %w", err)
+	}
+	if totalCount != len(ballots) {
+		return fmt.Errorf("tally counts sum to %d but %d ballots were cast", totalCount, len(ballots))
 	}
 
 	if r.PublishedAt == "" {

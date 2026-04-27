@@ -2,6 +2,7 @@ import Fastify, { type FastifyBaseLogger } from 'fastify';
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import rateLimit from '@fastify/rate-limit';
+import { ZodError } from 'zod';
 import type { Config } from './config.js';
 import { openDatabase } from './db.js';
 import { MemoryChain, type ChainGateway } from './services/chain.js';
@@ -34,6 +35,27 @@ export async function buildServer(deps: AppDeps) {
   await app.register(cors, { origin: resolveCorsOrigin(deps.config.OVOTE_CORS_ORIGINS) });
   await app.register(sensible);
 
+  // Any schema- or crypto-decode failure should surface as 400, not 500. Zod
+  // validation errors and base64url/curve-point decode errors share the same
+  // property: bad client input. Everything else is genuinely internal and keeps
+  // its 500 so we still see it in logs.
+  app.setErrorHandler((err: unknown, req, reply) => {
+    if (reply.sent) return;
+    if (err instanceof ZodError) {
+      const msg = err.issues.map((i) => `${i.path.join('.') || '<root>'}: ${i.message}`).join('; ');
+      return reply.code(400).send({ error: `invalid request: ${msg}` });
+    }
+    const e = err as { message?: string; statusCode?: number; validation?: unknown };
+    if (e.validation || e.statusCode === 400) {
+      return reply.code(400).send({ error: e.message ?? 'bad request' });
+    }
+    if (e.statusCode && e.statusCode < 500) {
+      return reply.code(e.statusCode).send({ error: e.message ?? 'error' });
+    }
+    req.log.error({ err }, 'unhandled error');
+    return reply.code(500).send({ error: 'internal server error' });
+  });
+
   // Global rate limit floor. Per-route caps (tighter) live on the auth and
   // credential endpoints that take email or issue secrets.
   await app.register(rateLimit, {
@@ -45,10 +67,15 @@ export async function buildServer(deps: AppDeps) {
   const db = openDatabase(deps.config.OVOTE_DB_PATH);
   const chain = deps.chain ?? (await buildChain(deps.config, app.log));
   const mailer = deps.mailer ?? buildMailer(deps.config, app.log);
-  const otp = new OtpService(db, deps.config.OVOTE_OTP_TTL_MINUTES, deps.config.OVOTE_OTP_MAX_ATTEMPTS);
+  const secretKey = resolveSecretKey(deps.config.OVOTE_SECRET_KEY, deps.config.OVOTE_DB_PATH);
+  const otp = new OtpService(
+    db,
+    deps.config.OVOTE_OTP_TTL_MINUTES,
+    deps.config.OVOTE_OTP_MAX_ATTEMPTS,
+    secretKey,
+  );
   const sessions = new SessionService(db, deps.config.OVOTE_SESSION_TTL_MINUTES);
   const registry = new VoterRegistry(db);
-  const secretKey = resolveSecretKey(deps.config.OVOTE_SECRET_KEY, deps.config.OVOTE_DB_PATH);
   const signer = new AgendaSigner(
     db,
     deps.config.OVOTE_BLIND_RSA_MODULUS as 2048 | 3072 | 4096,

@@ -166,7 +166,12 @@ Public. Lists all submitted shares for the agenda.
 ## Results
 
 ### `POST /results/publish` — admin only
-Combines submitted trustee shares off-chain (no secrets involved — just Lagrange interpolation over Ristretto points), solves a small discrete log per option, and writes the tally to the chain. The chain (both the in-memory driver and the Fabric chaincode) independently verifies that each option has at least `threshold` submitted decryption shares before persisting the tally, so a compromised admin identity cannot publish a fabricated result. Fails with `409` if any option lacks a quorum of shares.
+Combines submitted trustee shares off-chain (no secrets involved — just Lagrange interpolation over Ristretto points), solves a small discrete log per option, and writes the tally to the chain. The chain (both the in-memory driver and the Fabric chaincode) independently enforces two checks before persisting the tally:
+
+1. each option has at least `threshold` submitted decryption shares, and
+2. the counts sum to the total number of ballots cast on the bulletin board (every ballot encodes exactly one choice, bound by the per-ballot sum proof).
+
+Together these refuse any tally whose shape contradicts the bulletin board, so a compromised admin identity cannot publish a fabricated result. Full re-verification of the Lagrange interpolation and discrete-log decoding on-chain requires porting ristretto255 + Schnorr verification to Go — see `docs/OPERATIONS.md`. Fails with `409` if the quorum or total-count check fails.
 
 ```json
 { "agendaId": "…uuid…" }

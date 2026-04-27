@@ -98,7 +98,7 @@ For Fabric deployments, the on-chain access control is separate — it keys off 
 1. Visit http://localhost:5173 → click **sign in**.
 2. Enter your email → **request code**.
 3. **Dev:** read the 6-digit code from the API terminal. **Prod:** check email inbox.
-4. Enter the code → you're logged in. Role comes back in the response and is stored alongside the session token in `localStorage`.
+4. Enter the code → you're logged in. The session token and role are held in `sessionStorage` (cleared when the tab closes) so that session state does not persist across browser windows.
 
 ### API (curl)
 
@@ -138,7 +138,7 @@ After 5 wrong OTP codes for the same email, the OTP is purged and the voter has 
 
 ## Running an election end-to-end
 
-There is **no admin UI yet** — admin actions go through the API directly. Scripted example below; real deployments should wrap this in a small CLI or internal tool.
+Admin actions are available both through the web UI (sign in as a user with the `admin` role and use the `/admin` pages) and through the HTTP API. The scripted example below is the API path — useful for automation, CI fixtures, and internal tooling. The web UI hits the same endpoints.
 
 ### 1) Generate the threshold key (one-off, trustees must do this together)
 
@@ -350,6 +350,7 @@ See [SECURITY.md](../SECURITY.md) for the disclosure policy.
 - **Network anonymity.** The registrar sees the IP and email of every voter. Blind-signing breaks voter↔ballot linkability at the cryptographic level, but traffic analysis + timing is out of scope.
 - **Trustee key generation.** v1 uses a trusted dealer. For stronger guarantees swap in DKG — the on-chain format is ready for it.
 - **Single-choice ballots only.** The sum-proof in `ballot-verifier.ts` binds each ballot to encrypt exactly one `1` across all options. Supporting "pick up to k" or ranked ballots would need a different aggregate proof (e.g. sum ∈ {1..k}).
+- **Tally verification on-chain is partial.** The chaincode enforces (a) threshold trustee shares are present for every option and (b) the published counts sum to the total number of ballots cast — both refuse trivially fabricated tallies. It does **not** re-run the Lagrange interpolation or the small discrete-log decoding on-chain, because that would require porting ristretto255 + Schnorr verification to Go. Auditors can re-run the full crypto off-chain with `@ovote/crypto` against the public bulletin board.
 - **Single Fabric identity.** The API uses one certificate for every on-chain role; the chaincode `ovote.role` attribute is a comma-separated list (`admin,registrar,trustee`). Deployments that want stronger separation can issue one identity per role — the chaincode accepts both.
 - **Single-instance API.** Sessions and OTPs are stored in SQLite on one node. Multi-replica deployments need a shared DB or a move to Redis.
 - **Eligibility is frozen at open.** Adding a voter after the agenda opens returns `409`. This is by design — late additions break the "who could vote" auditor check.

@@ -34,6 +34,11 @@ export function adminRoutes(deps: AdminDeps) {
         const { email, role } = SetRoleBody.parse(req.body);
         const voter = deps.registry.findByEmail(email);
         if (!voter) return reply.code(404).send({ error: 'voter not found' });
+        // Refuse to demote the last admin — otherwise the org locks itself out
+        // of role management and has to re-bootstrap via OVOTE_ADMIN_BOOTSTRAP_EMAIL.
+        if (voter.role === 'admin' && role !== 'admin' && deps.registry.countAdmins() <= 1) {
+          return reply.code(409).send({ error: 'cannot demote the last remaining admin' });
+        }
         deps.registry.setRole(voter.id, role);
         return { voter: { ...voter, role } };
       },

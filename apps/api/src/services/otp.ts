@@ -1,9 +1,5 @@
-import { createHash, randomInt, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomInt, randomBytes } from 'node:crypto';
 import type { DB } from '../db.js';
-
-function hashCode(email: string, code: string): string {
-  return createHash('sha256').update(`ovote/otp/${email}/${code}`).digest('hex');
-}
 
 function generateCode(): string {
   // 6-digit zero-padded OTP
@@ -15,7 +11,17 @@ export class OtpService {
     private readonly db: DB,
     private readonly ttlMinutes: number,
     private readonly maxAttempts: number,
+    // Peppered HMAC over (email, code) — prevents an offline brute-force of
+    // the 6-digit code space if the sqlite file leaks. The pepper is the
+    // process-wide secret key that also encrypts per-agenda RSA keys.
+    private readonly pepper: Buffer,
   ) {}
+
+  private hashCode(email: string, code: string): string {
+    return createHmac('sha256', this.pepper)
+      .update(`ovote/otp/${email}/${code}`)
+      .digest('hex');
+  }
 
   issue(email: string): string {
     const code = generateCode();
@@ -29,7 +35,7 @@ export class OtpService {
            expires_at = excluded.expires_at,
            attempts = 0`,
       )
-      .run(email, hashCode(email, code), expiresAt);
+      .run(email, this.hashCode(email, code), expiresAt);
     return code;
   }
 
@@ -46,7 +52,7 @@ export class OtpService {
       this.db.prepare(`DELETE FROM otps WHERE email = ?`).run(email);
       return false;
     }
-    const ok = timingSafeEqual(row.code_hash, hashCode(email, code));
+    const ok = timingSafeEqual(row.code_hash, this.hashCode(email, code));
     if (!ok) {
       this.db.prepare(`UPDATE otps SET attempts = attempts + 1 WHERE email = ?`).run(email);
       return false;

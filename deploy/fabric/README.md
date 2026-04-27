@@ -50,8 +50,10 @@ OVOTE_FABRIC_CHANNEL=ovote-channel
 OVOTE_FABRIC_CHAINCODE=ovote
 OVOTE_FABRIC_MSP_ID=Org1MSP
 OVOTE_FABRIC_PEER_ENDPOINT=peer0.org1.ovote.local:7051
-OVOTE_FABRIC_TLS_CERT=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/peers/peer0.org1.ovote.local/tls/ca.crt
-OVOTE_FABRIC_IDENTITY=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/users/Admin@org1.ovote.local
+OVOTE_FABRIC_PEER_HOSTNAME_OVERRIDE=peer0.org1.ovote.local
+OVOTE_FABRIC_TLS_ROOT_CERT=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/peers/peer0.org1.ovote.local/tls/ca.crt
+OVOTE_FABRIC_SIGNCERT=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/users/Admin@org1.ovote.local/msp/signcerts/Admin@org1.ovote.local-cert.pem
+OVOTE_FABRIC_KEYSTORE_DIR=deploy/fabric/crypto-config/peerOrganizations/org1.ovote.local/users/Admin@org1.ovote.local/msp/keystore
 ```
 
 ## Role attribute on the API identity

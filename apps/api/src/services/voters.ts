@@ -82,6 +82,13 @@ export class VoterRegistry {
       .all() as Voter[];
   }
 
+  countAdmins(): number {
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM voters WHERE role = 'admin'`)
+      .get() as { n: number };
+    return row.n;
+  }
+
   setRole(voterId: string, role: Voter['role']): void {
     const res = this.db
       .prepare(`UPDATE voters SET role = ? WHERE id = ?`)
