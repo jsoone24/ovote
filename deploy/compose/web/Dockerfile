@@ -14,7 +14,10 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# tsconfig.base.json is required by every package's tsconfig (`extends:
+# "../../tsconfig.base.json"`) — without it tsc/vue-tsc silently fall back
+# to ES5 and the build fails with cryptic downlevel-iteration errors.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/package.json  packages/shared/
 COPY packages/crypto/package.json  packages/crypto/
 COPY apps/api/package.json         apps/api/
