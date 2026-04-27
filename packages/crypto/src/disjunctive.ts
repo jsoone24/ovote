@@ -1,5 +1,6 @@
 import {
   BASE,
+  ZERO,
   type Point,
   type Scalar,
   basePointMul,
@@ -15,7 +16,6 @@ import {
   scalarSub,
   scalarToB64Url,
   scalarFromB64Url,
-  scalarFromUint,
 } from './ristretto.js';
 import { hashToScalar } from './hash.js';
 import type { Ciphertext } from './elgamal.js';
@@ -133,15 +133,8 @@ export function verifyMembership(params: {
   return c === sumChallenges;
 }
 
-export function oneHotMessagePoints(n: number): Point[] {
-  const zero = basePointMul(scalarFromUint(0));
-  const one = basePointMul(scalarFromUint(1));
-  const pts: Point[] = [];
-  for (let i = 0; i < n; i++) pts.push(i === 0 ? one : zero);
-  void zero;
-  return pts;
-}
-
+// Message points for a single 0-or-1 ballot option: {0·G, 1·G} = {ZERO, BASE}.
+// The disjunctive proof checks the option's plaintext is one of these.
 export function zeroOrOneMessagePoints(): Point[] {
-  return [basePointMul(scalarFromUint(0)), basePointMul(scalarFromUint(1))];
+  return [ZERO, BASE];
 }

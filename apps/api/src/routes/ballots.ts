@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { parseBallot } from '@ovote/shared';
-import type { ChainGateway } from '../services/chain.js';
+import { CredentialAlreadyUsedError, type ChainGateway } from '../services/chain.js';
 import { verifyBallot } from '../services/ballot-verifier.js';
 
 export interface BallotDeps {
@@ -30,9 +30,10 @@ export function ballotRoutes(deps: BallotDeps) {
       try {
         await deps.chain.castBallot(ballot);
       } catch (err) {
-        const msg = (err as Error).message;
-        if (msg.includes('credential already used')) return reply.code(409).send({ error: msg });
-        return reply.code(500).send({ error: `chain rejected ballot: ${msg}` });
+        if (err instanceof CredentialAlreadyUsedError) {
+          return reply.code(409).send({ error: err.message });
+        }
+        return reply.code(500).send({ error: `chain rejected ballot: ${(err as Error).message}` });
       }
 
       reply.code(201).send({ id: ballot.id, status: 'recorded' });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Agenda } from '@ovote/shared';
 import { api } from '../api.js';
@@ -27,7 +27,9 @@ function goTrustee(a: Agenda): void {
   router.push({ name: 'agenda-trustee', params: { id: a.id } });
 }
 
-const isTrustee = session.voter.value?.role === 'trustee';
+// Reactive — re-renders the trustee button when the user signs in or their
+// role changes during the session lifetime.
+const isTrustee = computed(() => session.voter.value?.role === 'trustee');
 </script>
 
 <template>

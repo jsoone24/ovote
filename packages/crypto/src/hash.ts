@@ -5,6 +5,7 @@ import { ristretto255 } from '@noble/curves/ed25519';
 
 const Fn = ristretto255.Point.Fn;
 
+// hashBytes returns sha256(part_0 || part_1 || …) with a single allocation.
 export function hashBytes(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
   const joined = new Uint8Array(total);
@@ -16,14 +17,23 @@ export function hashBytes(parts: Uint8Array[]): Uint8Array {
   return sha256(joined);
 }
 
+// hashToScalar deterministically derives a ristretto255 scalar from
+// (domain, parts...). Mirrored byte-for-byte by chaincode/ovote/crypto/hash.go
+// — the Fiat-Shamir transcripts on both sides MUST agree, otherwise an
+// auditor's TS-side recomputation would reject what the chaincode accepted.
+//
+// Construction:
+//   1. d = sha256("ovote/v1/" + domain || part_0 || part_1 || …)
+//   2. e = sha256(d)
+//   3. wide = d || e                                  (64 bytes)
+//   4. result = bigint(wide, big-endian) mod L         (L = ristretto255 order)
+//
+// The two-block sha256 is the standard "double-SHA wide reduction" used by
+// libsodium / IETF hash-to-curve drafts; it gives a uniform distribution mod
+// L without needing dedicated hash-to-field gear.
 export function hashToScalar(domain: string, parts: Uint8Array[]): Scalar {
   const domainBytes = new TextEncoder().encode(`ovote/v1/${domain}`);
-  const first = sha256([domainBytes, ...parts].reduce<Uint8Array>((acc, p) => {
-    const next = new Uint8Array(acc.length + p.length);
-    next.set(acc, 0);
-    next.set(p, acc.length);
-    return next;
-  }, new Uint8Array()));
+  const first = hashBytes([domainBytes, ...parts]);
   const second = sha256(first);
   const wide = new Uint8Array(64);
   wide.set(first, 0);

@@ -2,6 +2,7 @@ import {
   type Point,
   type Scalar,
   BASE,
+  ZERO,
   basePointMul,
   pointAdd,
   pointMul,
@@ -110,10 +111,12 @@ export function verifyDecryptionShare(params: {
 
 export function combineShares(shares: DecryptionShare[], ct: Ciphertext): Point {
   const indices = shares.map((s) => s.index);
-  let combined = basePointMul(scalarFromUint(0));
+  // Σ λ_i · s_i where s_i = sk_i · c1; recovers sk · c1 by Lagrange.
+  let combined: Point = ZERO;
   for (const s of shares) {
     const lambda = lagrangeCoefficient(s.index, indices);
     combined = pointAdd(combined, pointMul(s.share, lambda));
   }
+  // c2 - sk·c1 = m·G
   return pointSub(ct.c2, combined);
 }

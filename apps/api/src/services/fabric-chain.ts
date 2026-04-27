@@ -11,7 +11,7 @@ import {
 } from '@hyperledger/fabric-gateway';
 import type { Agenda, Ballot, TallyProof, TrusteeDecryptionShare } from '@ovote/shared';
 import type { Config } from '../config.js';
-import type { ChainGateway } from './chain.js';
+import { CredentialAlreadyUsedError, type ChainGateway } from './chain.js';
 
 // FabricChain routes every ChainGateway call through @hyperledger/fabric-gateway
 // to the on-chain `ovote` contract. Writes use submitTransaction (full
@@ -84,11 +84,12 @@ export class FabricChain implements ChainGateway {
     try {
       await this.submit('CastBallot', JSON.stringify(ballot));
     } catch (err) {
-      // Normalize to the same error text MemoryChain throws so the ballot
-      // route can translate it into a 409 without branching on driver.
+      // Normalize to the same typed error MemoryChain throws so the ballot
+      // route can translate it into a 409 with `instanceof` instead of
+      // substring-matching the chaincode message.
       const msg = (err as Error).message;
       if (/credential already used/i.test(msg)) {
-        throw new Error('credential already used');
+        throw new CredentialAlreadyUsedError();
       }
       throw err;
     }

@@ -1,5 +1,14 @@
+// Wire-format encoding helpers: base64url for raw bytes and a canonical-JSON
+// serializer for transcripts. Both are intentionally pure and dependency-free
+// — the chaincode (Go) reproduces the same byte outputs.
+
 const B64URL_ALPHABET = /^[A-Za-z0-9_-]*$/;
 
+/**
+ * Encode `bytes` as URL-safe base64 with no padding. Compatible with Node
+ * Buffer's `'base64url'` mode and with WebCrypto's typical output. Used for
+ * every point/scalar/proof value that crosses the wire.
+ */
 export function toB64Url(bytes: Uint8Array): string {
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -9,6 +18,11 @@ export function toB64Url(bytes: Uint8Array): string {
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
+/**
+ * Decode a URL-safe base64 string (with or without padding) into bytes.
+ * Throws on illegal characters so the caller can reject malformed input
+ * with a 400 instead of an opaque crypto-layer panic.
+ */
 export function fromB64Url(s: string): Uint8Array {
   if (!B64URL_ALPHABET.test(s)) {
     throw new Error('invalid base64url: illegal character');
@@ -23,6 +37,13 @@ export function fromB64Url(s: string): Uint8Array {
   return out;
 }
 
+/**
+ * RFC 8785-flavored canonical JSON: object keys sorted lexicographically,
+ * no insignificant whitespace, `undefined` / `NaN` / `Infinity` / `bigint`
+ * rejected. Stable across runs and across languages — the chaincode and
+ * any third-party verifier produce byte-identical output for the same value,
+ * which is what makes it safe to feed into a Fiat-Shamir transcript.
+ */
 export function canonicalJSON(value: unknown): string {
   return serialize(value);
 }

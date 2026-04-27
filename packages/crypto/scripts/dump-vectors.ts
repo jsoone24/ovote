@@ -1,24 +1,61 @@
 // Emit cross-language test vectors for the Go chaincode's crypto package.
 //
-// Usage: pnpm --filter @ovote/crypto exec tsx scripts/dump-vectors.ts > <out>.json
+// Usage: pnpm --filter @ovote/crypto exec tsx scripts/dump-vectors.ts <out>.json
 //
 // Anything that depends on byte-level parity between TS @ovote/crypto and the
 // Go reimplementation in chaincode/ovote/crypto/ goes here. The Go test loads
 // this JSON and asserts the same outputs.
 //
-// Vectors are deterministic (no randomness) so this file's output is stable;
-// regenerate after intentional changes only.
+// Determinism: ZK proofs and trustee keygen normally pull from getRandomValues.
+// We install a SHA-256-stream PRG seeded with a fixed string BEFORE importing
+// any crypto module, so re-running the script always produces the SAME bytes.
+// CI then runs the dumper and asserts `git diff --exit-code` to catch any
+// TS-side change that would silently invalidate the chaincode parity tests.
 
+import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { argv } from 'node:process';
-import { toB64Url } from '@ovote/shared';
-import {
-  Ristretto,
-  Hash,
-  Schnorr,
-  Threshold,
-  ElGamal,
-} from '../src/index.js';
+
+// Seeded PRG: out_n = SHA-256("ovote-test-vectors-v1" || counter_be64).
+// Installed on globalThis.crypto before the @ovote/crypto modules load so
+// every randomScalar() call lands on the deterministic stream instead of the
+// platform CSPRNG. This is for FIXTURE GENERATION ONLY — the script must
+// never be imported from runtime code.
+let prgCounter = 0n;
+function seededRandom(out: Uint8Array): Uint8Array {
+  let off = 0;
+  while (off < out.length) {
+    const ctr = Buffer.alloc(8);
+    ctr.writeBigUInt64BE(prgCounter++, 0);
+    const block = createHash('sha256')
+      .update('ovote-test-vectors-v1')
+      .update(ctr)
+      .digest();
+    const take = Math.min(block.length, out.length - off);
+    out.set(block.subarray(0, take), off);
+    off += take;
+  }
+  return out;
+}
+// globalThis.crypto is a read-only getter on modern Node, so override only
+// the method we care about. Every module that calls
+// `globalThis.crypto.getRandomValues` (including @noble's curves and our own
+// randomScalar) hits this stub.
+Object.defineProperty(globalThis.crypto, 'getRandomValues', {
+  configurable: true,
+  value: <T extends ArrayBufferView | null>(buf: T): T => {
+    if (buf && ArrayBuffer.isView(buf)) {
+      seededRandom(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength));
+    }
+    return buf;
+  },
+});
+
+// IMPORTANT: dynamic-import @ovote/crypto AFTER installing the seeded PRG so
+// any module-level captures of crypto.getRandomValues see our stub.
+const { toB64Url } = await import('@ovote/shared');
+const { Ristretto, Hash, Schnorr, Threshold } = await import('../src/index.js');
+type Point = ReturnType<typeof Ristretto.basePointMul>;
 
 interface HashVector {
   domain: string;
@@ -160,7 +197,7 @@ let thresholdVector: ThresholdEndToEndVector;
     Ristretto.basePointMul(BigInt(m)),
     Ristretto.pointMul(dealer.publicParams.groupPk, r),
   );
-  const ct: ElGamal.Ciphertext = { c1, c2 };
+  const ct: { c1: Point; c2: Point } = { c1, c2 };
 
   const shares = dealer.shares.map((s) => {
     const ds = Threshold.partialDecrypt(s, ct);

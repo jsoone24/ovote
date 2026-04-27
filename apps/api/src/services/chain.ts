@@ -1,5 +1,16 @@
 import type { Agenda, Ballot, TallyProof, TrusteeDecryptionShare } from '@ovote/shared';
 
+// CredentialAlreadyUsedError is thrown by ChainGateway.castBallot when a
+// blind-signed credential has already been spent on this agenda. Promoted
+// to a distinct type so the route layer can map it to HTTP 409 with
+// `instanceof` instead of substring-matching the message.
+export class CredentialAlreadyUsedError extends Error {
+  constructor(message = 'credential already used') {
+    super(message);
+    this.name = 'CredentialAlreadyUsedError';
+  }
+}
+
 // ChainGateway abstracts the bulletin board so the API can run against an
 // in-memory stub for development/tests or a real Hyperledger Fabric gateway
 // in production. Keep this interface tight — these are the only four writes
@@ -48,7 +59,7 @@ export class MemoryChain implements ChainGateway {
     const bag = this.ballots.get(ballot.agendaId) ?? new Map();
     for (const existing of bag.values()) {
       if (existing.credential.signature === ballot.credential.signature) {
-        throw new Error('credential already used');
+        throw new CredentialAlreadyUsedError();
       }
     }
     bag.set(ballot.id, ballot);

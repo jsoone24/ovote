@@ -18,6 +18,9 @@ type Contract struct {
 
 // ---- Agenda lifecycle ------------------------------------------------------
 
+// CreateAgenda persists a new agenda in `draft` status. Admin-only. The
+// caller's MSP id is stamped into `createdBy` for audit; `createdAt` defaults
+// to the transaction proposal time if the caller did not supply one.
 func (c *Contract) CreateAgenda(ctx contractapi.TransactionContextInterface, agendaJSON string) error {
 	if err := requireRole(ctx, roleAdmin); err != nil {
 		return err
@@ -53,6 +56,9 @@ func (c *Contract) CreateAgenda(ctx contractapi.TransactionContextInterface, age
 	return putJSON(ctx, key, &a)
 }
 
+// OpenAgenda transitions an agenda from `draft` to `open`. Admin-only.
+// Once open, the eligibility roster (held off-chain by the API) is frozen
+// and ballots become acceptable.
 func (c *Contract) OpenAgenda(ctx contractapi.TransactionContextInterface, agendaID string) error {
 	if err := requireRole(ctx, roleAdmin); err != nil {
 		return err
@@ -60,6 +66,9 @@ func (c *Contract) OpenAgenda(ctx contractapi.TransactionContextInterface, agend
 	return c.transitionStatus(ctx, agendaID, StatusDraft, StatusOpen)
 }
 
+// CloseAgenda transitions an agenda from `open` to `closed`. Admin-only.
+// No further ballots will be accepted; trustees may now begin submitting
+// decryption shares.
 func (c *Contract) CloseAgenda(ctx contractapi.TransactionContextInterface, agendaID string) error {
 	if err := requireRole(ctx, roleAdmin); err != nil {
 		return err
@@ -67,10 +76,14 @@ func (c *Contract) CloseAgenda(ctx contractapi.TransactionContextInterface, agen
 	return c.transitionStatus(ctx, agendaID, StatusOpen, StatusClosed)
 }
 
+// GetAgenda returns one agenda by id. Public — auditors fetch the agenda
+// alongside the ballot box to re-run verification.
 func (c *Contract) GetAgenda(ctx contractapi.TransactionContextInterface, agendaID string) (*Agenda, error) {
 	return getAgenda(ctx, agendaID)
 }
 
+// ListAgendas returns every agenda on the channel, in arbitrary order.
+// Public.
 func (c *Contract) ListAgendas(ctx contractapi.TransactionContextInterface) ([]*Agenda, error) {
 	iter, err := ctx.GetStub().GetStateByPartialCompositeKey(agendaPrefix, []string{})
 	if err != nil {
@@ -95,6 +108,11 @@ func (c *Contract) ListAgendas(ctx contractapi.TransactionContextInterface) ([]*
 
 // ---- Ballot submission -----------------------------------------------------
 
+// CastBallot appends a verified ballot to the bulletin board. Registrar-role
+// only; the registrar is the API gateway that relays the voter's already-
+// verified ballot. Single-use is enforced via a credential nullifier keyed
+// by the blind signature: the same signature submitted twice fails the
+// second time.
 func (c *Contract) CastBallot(ctx contractapi.TransactionContextInterface, ballotJSON string) error {
 	if err := requireRole(ctx, roleRegistrar); err != nil {
 		return err
@@ -154,6 +172,9 @@ func (c *Contract) CastBallot(ctx contractapi.TransactionContextInterface, ballo
 	return putJSON(ctx, key, &b)
 }
 
+// ListBallots returns every ballot for the given agenda. Public — auditors
+// download the full box to re-aggregate ciphertexts and re-run the trustee
+// proofs off-chain.
 func (c *Contract) ListBallots(ctx contractapi.TransactionContextInterface, agendaID string) ([]*Ballot, error) {
 	iter, err := ctx.GetStub().GetStateByPartialCompositeKey(ballotPrefix, []string{agendaID})
 	if err != nil {
@@ -178,6 +199,15 @@ func (c *Contract) ListBallots(ctx contractapi.TransactionContextInterface, agen
 
 // ---- Trustee decryption + tally -------------------------------------------
 
+// SubmitDecryptionShare records one trustee's partial decryption for one
+// option, alongside its Chaum-Pedersen equality-of-DLogs proof. Trustee-
+// role only. The chaincode does NOT verify the proof at submission time —
+// that happens during PublishResult, so trustees can submit in any order
+// without coordination.
+//
+// The composite key (agendaId, optionId, trusteeIndex) makes duplicate
+// submissions a no-op rejection: a trustee that submits twice for the same
+// option is told to back off.
 func (c *Contract) SubmitDecryptionShare(ctx contractapi.TransactionContextInterface, shareJSON string) error {
 	if err := requireRole(ctx, roleTrustee); err != nil {
 		return err
@@ -226,6 +256,8 @@ func (c *Contract) SubmitDecryptionShare(ctx contractapi.TransactionContextInter
 	return putJSON(ctx, key, &s)
 }
 
+// ListDecryptionShares returns every submitted share for the given agenda.
+// Public.
 func (c *Contract) ListDecryptionShares(ctx contractapi.TransactionContextInterface, agendaID string) ([]*TrusteeDecryptionShare, error) {
 	iter, err := ctx.GetStub().GetStateByPartialCompositeKey(decryptPrefix, []string{agendaID})
 	if err != nil {
@@ -248,6 +280,28 @@ func (c *Contract) ListDecryptionShares(ctx contractapi.TransactionContextInterf
 	return out, nil
 }
 
+// PublishResult finalises the tally for a closed agenda. Admin-only.
+//
+// The chaincode does NOT trust the published counts. Before persisting it
+// re-derives them from the bulletin board:
+//
+//  1. Shape sanity — every option appears exactly once, every count is
+//     non-negative, declared options match the agenda.
+//  2. Quorum — every option has ≥ threshold submitted shares.
+//  3. Counts equal `len(ballots)` — every ballot encodes exactly one choice
+//     (enforced by the per-ballot sum proof at CastBallot), so the totals
+//     must add up.
+//  4. Per-option crypto re-verification (`tally_verify.go`):
+//     a. Re-aggregate each option's ciphertext across every cast ballot.
+//     b. Re-verify each submitted Schnorr equality-of-DLogs proof against
+//        the agenda-registered trustee pubkey.
+//     c. Lagrange-combine a quorum of valid shares to recover m·G.
+//     d. Brute-force the small discrete log (bounded by the ballot count)
+//        and confirm m equals the published count.
+//
+// A compromised admin therefore cannot publish a fabricated tally — the
+// chain will refuse any result that doesn't match what the trustees jointly
+// decrypted from the bulletin board.
 func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, resultJSON string) error {
 	if err := requireRole(ctx, roleAdmin); err != nil {
 		return err
@@ -341,6 +395,8 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 	return putJSON(ctx, akey, agenda)
 }
 
+// GetResult returns the published tally for an agenda, or an error if
+// PublishResult has not yet succeeded for it. Public.
 func (c *Contract) GetResult(ctx contractapi.TransactionContextInterface, agendaID string) (*TallyProof, error) {
 	key, err := resultKey(ctx, agendaID)
 	if err != nil {

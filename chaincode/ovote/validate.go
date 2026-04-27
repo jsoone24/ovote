@@ -8,10 +8,9 @@ import (
 )
 
 var (
-	uuidRe    = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
-	b64UrlRe  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
-	optionRe  = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
-	rfcFormat = time.RFC3339
+	uuidRe   = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	b64UrlRe = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	optionRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
 )
 
 func validateAgenda(a *Agenda) error {
@@ -88,8 +87,10 @@ func validateBallot(b *Ballot) error {
 	if !uuidRe.MatchString(b.AgendaId) {
 		return fmt.Errorf("agendaId must be UUID")
 	}
-	if len(b.Options) == 0 {
-		return fmt.Errorf("ballot has no encrypted options")
+	// At least two options — matches the schema floor in packages/shared and
+	// keeps the disjunctive 0-or-1 proof meaningful.
+	if len(b.Options) < 2 {
+		return fmt.Errorf("ballot needs at least two encrypted options, got %d", len(b.Options))
 	}
 	for _, o := range b.Options {
 		if !optionRe.MatchString(o.OptionId) {
@@ -144,6 +145,6 @@ func assertBallotMatchesAgenda(b *Ballot, a *Agenda) error {
 }
 
 func isTime(s string) bool {
-	_, err := time.Parse(rfcFormat, s)
+	_, err := time.Parse(time.RFC3339, s)
 	return err == nil
 }

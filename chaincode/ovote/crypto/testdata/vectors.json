@@ -45,8 +45,8 @@
       "g2": "6pL4PREpCqWIOADGJSZYpIf9I_wZhiioHK4Eoa_T22U",
       "h2": "mlHnPXvvapg_Gqu7j9LFJGkz_3GZTFa6jG-ZvP9tbXU",
       "proof": {
-        "commitment": "rCdOlqS1uc3UxX0bzCCSqJHGn2MTsYY5X0tegSuelRo.ZvB714v2oXcUNcc-T84YpsCooWKlfMrBLyeJ-dgLyXk",
-        "response": "1FPfK7SmiNPAlXiEtv5qDpyP_HK-TOy7WRLMgRxBDQ4"
+        "commitment": "HE1gkieJDzmcuJ6fNnjTBt7Rk5UZmAlcDDoSby8qCg0.EMia3AuFn2kt2kQzitDmqhrxViiVGqLUp1bwcYTnNDs",
+        "response": "Z8OPBt3rCtp5CfD0G_yA7VA5gOqLYj5Fh3xzVKAB9As"
       },
       "expectedValid": true
     },
@@ -57,8 +57,8 @@
       "g2": "6pL4PREpCqWIOADGJSZYpIf9I_wZhiioHK4Eoa_T22U",
       "h2": "Oqof5t-hTAm7SQ0lDyK5FiXbOOLZfsBPqh3iRWVYJls",
       "proof": {
-        "commitment": "rCdOlqS1uc3UxX0bzCCSqJHGn2MTsYY5X0tegSuelRo.ZvB714v2oXcUNcc-T84YpsCooWKlfMrBLyeJ-dgLyXk",
-        "response": "1FPfK7SmiNPAlXiEtv5qDpyP_HK-TOy7WRLMgRxBDQ4"
+        "commitment": "HE1gkieJDzmcuJ6fNnjTBt7Rk5UZmAlcDDoSby8qCg0.EMia3AuFn2kt2kQzitDmqhrxViiVGqLUp1bwcYTnNDs",
+        "response": "Z8OPBt3rCtp5CfD0G_yA7VA5gOqLYj5Fh3xzVKAB9As"
       },
       "expectedValid": false
     }
@@ -122,45 +122,45 @@
     "trustees": [
       {
         "index": 1,
-        "pk": "HjyiQcjpKBlDJZUr1XolCIjFkEgDCyDbDprZYZUPegI"
+        "pk": "cDO84nfjbGLZwUl1K4T_m-jqjYyLwmWlRQ0Pe6muT2U"
       },
       {
         "index": 2,
-        "pk": "fEziRI3Ou7wA1dsgP7l5o-KtZqjMj--W3MfokvLAoik"
+        "pk": "9gBp1p3RDdP4_LNrQlawLn7VlNPjDhmKz4Ro0fmavB0"
       },
       {
         "index": 3,
-        "pk": "NusTHDnKSoO4jOHcDdHvgAR8haQ_R6Jvdgb_IJ3asGw"
+        "pk": "sriOemFTTbUZk5BGO4_YudOBZ1yULA80BKQ3Kp2iAE8"
       }
     ],
-    "groupPk": "kD1aBR-OhexCDJUtJlPBGnvgMVXOhPQIKAoGjDtl6W4",
+    "groupPk": "YDPvoeN09eGhlmLuZTIwXWdHldc5-LGj8tYtywBMqXM",
     "aggregate": {
       "c1": "ukKEpkHAsb5q3_aUmjAQ4abOER7jfRwDqTLPWKw5B1g",
-      "c2": "zoUV7P_rVILrnBfLZC2apORRvLDtQBRuw8yfmJOw7C8"
+      "c2": "fDz5fI4uhTw6AbfBJYCkE0iTggSdOH-BR6nISTLA7yI"
     },
     "shares": [
       {
         "index": 1,
-        "share": "GJUAnY6rIKSd12AO54BIcfSrBdy0oe1KA79rfX683Cg",
+        "share": "ogN4waMs9B_bYvbASOfwIiLnz33szM_aXoYuMMGrYAg",
         "proof": {
-          "commitment": "EAFvVYspkYX3S-pEkFK52x4YqKpcC15-BNU1hDUFBgw.8kZ0_8mx6Fd-6CKlSZ_d-Ky3slfVwUPlw_lWSCajTw0",
-          "response": "OUrS72Oc6getYLzTQQRuteWqkStOccIJafMWuBEpYAs"
+          "commitment": "zmvvQtCFIet_daHTCW5RcfT8N8KzB4QnwtpJFX45pBM.LupOaMRNYI_9zHYZXZ0Rcj2gzV_7WeYnrnqL8x_udAs",
+          "response": "PmWtaNXZRIdiKnvQ4J5_SEqbggxyZtnePld--Ke8uA8"
         }
       },
       {
         "index": 2,
-        "share": "Yn1EWqQd1tJANEp8x7--5PEC0g8WwgygryuEbwUJ9ns",
+        "share": "NoMDtKfFoscfJ-Bg_ee6X9dKeCZZRuh9tTVeHw_ZkAc",
         "proof": {
-          "commitment": "Jt3KI3_FCYvNJ7eTIaH7bEvyRpH-IeRgpQmKZUpRd3I._qe9HMjNRw_8ts612HSJoBXybrZA4ppOviPND9b3JXI",
-          "response": "8y9UL3SfuBP-UNnuhxv8IHy95QIm4r4HaWBvulGMnAA"
+          "commitment": "soZsmvKv4k5aDj4uLP3q2w5p2iPQ5W5GTd9zb19qgjQ.cpmLny8PlZAM8bXYi-f-Za3reQk8sa7sZV-FtcL91mU",
+          "response": "Lj5uYmhq_TXz6UOOrXIJ7ClC3X0LfM7CO5ZEAw3wBgY"
         }
       },
       {
         "index": 3,
-        "share": "KrMVjSnGlEF14SY6Y4ELUSHaLKZ14xMsG6yEK-uXwlc",
+        "share": "Fq__IVu3v8Tob9ycwRT_JYyTLeLyhu0SbyRfCq_SxDQ",
         "proof": {
-          "commitment": "NKjniKU1I7tivW-HRdyYDsJ0f74fGrJz0QLtL63XkkQ.whRO7kKJgzXUNGwylRm9LQho4UmpuLvGp10tpK3pZ1o",
-          "response": "G957v1TgTMbPGDo821SKmw88untCQ24fRUEwKCKvDAE"
+          "commitment": "PNXsNQPReJ0TylOHlTDAYZcLbxAJ2yvz3zsflngfZic.mFhs4-O_LrMlieoi-uwpvql049tduTcBQnh_X5Cgkm0",
+          "response": "kvGlSVL1BpBTqtEBBv-qeqDj3-snTBZuz-mSr_y69AY"
         }
       }
     ],

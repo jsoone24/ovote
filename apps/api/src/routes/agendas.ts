@@ -108,11 +108,13 @@ export function agendaRoutes(deps: AgendaRoutesDeps) {
           return reply.code(409).send({ error: 'eligibility can only be edited while agenda is draft' });
         }
 
+        // `added` reports rows actually inserted, not emails iterated. Re-
+        // submitting an email already on the roster is a no-op (INSERT OR
+        // IGNORE) and must not inflate the response.
         let added = 0;
         for (const email of emails) {
           const voter = deps.registry.upsertByEmail(email);
-          deps.registry.addEligibility(voter.id, req.params.id);
-          added++;
+          if (deps.registry.addEligibility(voter.id, req.params.id)) added++;
         }
         reply.send({ added });
       },

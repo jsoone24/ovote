@@ -41,12 +41,13 @@ export class VoterRegistry {
     return row !== undefined;
   }
 
-  addEligibility(voterId: string, agendaId: string): void {
-    this.db
-      .prepare(
-        `INSERT OR IGNORE INTO eligibility (voter_id, agenda_id) VALUES (?, ?)`,
-      )
+  // Returns true on a fresh insert, false if the (voter, agenda) pair was
+  // already on the roster (INSERT OR IGNORE swallowed the duplicate).
+  addEligibility(voterId: string, agendaId: string): boolean {
+    const res = this.db
+      .prepare(`INSERT OR IGNORE INTO eligibility (voter_id, agenda_id) VALUES (?, ?)`)
       .run(voterId, agendaId);
+    return res.changes > 0;
   }
 
   findIssuedCredential(

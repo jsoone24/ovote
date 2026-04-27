@@ -34,6 +34,11 @@ const (
 	roleRegistrar = "registrar"
 )
 
+// requireRole returns nil if the caller's `ovote.role` MSP attribute contains
+// the requested role, and an error otherwise. The attribute is parsed as a
+// comma-separated list (whitespace tolerated) so a single multi-role identity
+// satisfies multiple gates. Returns an error if the attribute is missing —
+// the chaincode never trusts an unattributed caller.
 func requireRole(ctx contractapi.TransactionContextInterface, role string) error {
 	cid := ctx.GetClientIdentity()
 	val, found, err := cid.GetAttributeValue(attrRole)
@@ -51,6 +56,8 @@ func requireRole(ctx contractapi.TransactionContextInterface, role string) error
 	return fmt.Errorf("caller roles %q do not include required role %q", val, role)
 }
 
+// callerID returns the MSP-derived stable identity string for the caller.
+// Used to stamp `createdBy` on agendas; not used for access control.
 func callerID(ctx contractapi.TransactionContextInterface) (string, error) {
 	return ctx.GetClientIdentity().GetID()
 }

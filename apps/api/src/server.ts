@@ -135,7 +135,9 @@ async function buildChain(config: Config, log: FastifyBaseLogger): Promise<Chain
 }
 
 function buildMailer(config: Config, log: FastifyBaseLogger): Mailer {
-  if (config.OVOTE_SMTP_URL) return new SmtpMailer(config.OVOTE_SMTP_URL, config.OVOTE_SMTP_FROM);
+  if (config.OVOTE_SMTP_URL) {
+    return new SmtpMailer(config.OVOTE_SMTP_URL, config.OVOTE_SMTP_FROM, config.OVOTE_OTP_TTL_MINUTES);
+  }
   return new ConsoleMailer(log);
 }
 
@@ -147,12 +149,13 @@ function resolveCorsOrigin(raw: string): true | string[] {
 }
 
 // Parses OVOTE_TRUST_PROXY. "false"/"" -> don't trust; "true" -> trust all;
-// a number -> hop count; a string containing "/" -> treated as a CIDR the
-// library understands.
+// a non-negative integer -> hop count; otherwise -> treated as a CIDR the
+// rate-limit library understands. "0" is intentionally accepted as "trust no
+// proxy" so operators can disable it explicitly.
 function resolveTrustProxy(raw: string): boolean | number | string {
   if (raw === '' || raw.toLowerCase() === 'false') return false;
   if (raw.toLowerCase() === 'true') return true;
   const n = Number(raw);
-  if (Number.isInteger(n) && n > 0) return n;
+  if (Number.isInteger(n) && n >= 0) return n;
   return raw;
 }
