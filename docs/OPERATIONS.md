@@ -355,3 +355,56 @@ See [SECURITY.md](../SECURITY.md) for the disclosure policy.
 - **Single-instance API.** Sessions and OTPs are stored in SQLite on one node. Multi-replica deployments need a shared DB or a move to Redis.
 - **Eligibility is frozen at open.** Adding a voter after the agenda opens returns `409`. This is by design — late additions break the "who could vote" auditor check.
 - **OTP over email.** Email is the weakest link. For anything sensitive combine with SSO or an additional second factor at the proxy layer.
+
+---
+
+## Production hardening checklist
+
+The defaults below are convenient for local development. Tighten each one before exposing the API to anything beyond a trusted intranet.
+
+### CORS
+
+`OVOTE_CORS_ORIGINS` defaults to `*` (reflect any origin) so the dev web UI on `localhost:5173` works out of the box. **In production** set it to a comma-separated allowlist of origins that should be able to call the API:
+
+```
+OVOTE_CORS_ORIGINS=https://vote.example.org,https://admin.vote.example.org
+```
+
+Any other origin will be rejected by the preflight check.
+
+### Trust-proxy header
+
+`OVOTE_TRUST_PROXY` defaults to `false`. Behind a load balancer or reverse proxy that terminates TLS, set it to the hop count (`1` for a single proxy, `2` for nginx → cloudfront, etc.) so `req.ip` reflects the real client IP and rate limiting works correctly.
+
+### Secret-key rotation
+
+`OVOTE_SECRET_KEY` (32 bytes base64url) is the **process-wide pepper** used in two places:
+
+1. **OTP HMAC.** `code_hash` rows in the `otps` table are `HMAC-SHA256(secretKey, "ovote/otp/<email>/<code>")`. Rotating the key invalidates every outstanding OTP — voters will need to request a new code.
+2. **Per-agenda RSA private key envelope.** Each agenda's blind-signing RSA key is stored AES-256-GCM encrypted with the secret key. Rotating the key without re-encrypting these envelopes will brick blind-signing for every existing agenda.
+
+**Safe rotation procedure:**
+
+1. Generate the new key out-of-band: `openssl rand 32 | base64 | tr '/+' '_-' | tr -d '='`.
+2. With the API stopped, run a one-off migration script that reads each row in `agenda_signers`, decrypts the RSA private key with the *old* `OVOTE_SECRET_KEY`, re-encrypts with the *new* key, and writes it back. (No such script ships yet — write one before your first rotation.)
+3. Truncate the `otps` table (it is acceptable to invalidate in-flight codes).
+4. Restart the API with the new `OVOTE_SECRET_KEY`.
+
+If the old key is lost without performing step 2, every existing agenda's RSA private key is permanently undecryptable and the agenda must be retired.
+
+### GDPR / PIPA — voter erasure
+
+Personal data lives in two layers and the right-to-erasure procedure is different in each:
+
+| Layer | Data | Erasure approach |
+|-------|------|-------------------|
+| API SQLite (`voters`, `eligibility`, `otps`, `sessions`) | email, voter UUID, role, eligibility membership | `DELETE FROM voters WHERE email = ?` cascades into `eligibility`, `otps`, `sessions`, `credentials_issued`. Safe to run at any time. |
+| On-chain (`ballots`) | encrypted ciphertexts, blind-signed credential, voter-supplied transcript JSON | **Cannot be deleted** — Fabric's append-only ledger is the design. |
+
+The on-chain ballot does **not** contain the voter's identity. The blind-signed credential is unlinkable to the voter (that is the point of RSA-BSSA). The voter's email and identity-side row both live in the SQLite layer and are removable.
+
+For consortium deployments, document the above mapping in your privacy notice. The legal interpretation is that pseudonymous on-chain ballots fall outside the scope of erasure once the link in SQLite is removed — but confirm with your DPO since interpretation varies by jurisdiction.
+
+### Background hygiene
+
+`OtpService.sweepExpired()` and `SessionService.sweepExpired()` are called by a 60-second `setInterval` in `apps/api/src/server.ts`. No external scheduler is needed.

@@ -60,6 +60,16 @@ export class OtpService {
     this.db.prepare(`DELETE FROM otps WHERE email = ?`).run(email);
     return true;
   }
+
+  // Bulk-purge expired OTP rows. verify() also evicts on touch, but rows for
+  // emails that never come back to verify accumulate forever — this is the
+  // background sweep. Returns the number of rows removed.
+  sweepExpired(now: number = Date.now()): number {
+    const res = this.db
+      .prepare(`DELETE FROM otps WHERE expires_at <= ?`)
+      .run(new Date(now).toISOString());
+    return res.changes;
+  }
 }
 
 export class SessionService {
@@ -94,6 +104,15 @@ export class SessionService {
   revoke(token: string): void {
     const tokenHash = createHash('sha256').update(token).digest('hex');
     this.db.prepare(`DELETE FROM sessions WHERE token_hash = ?`).run(tokenHash);
+  }
+
+  // Same idea as OtpService.sweepExpired — resolve() evicts on touch but
+  // never-touched stale sessions otherwise pile up in sqlite.
+  sweepExpired(now: number = Date.now()): number {
+    const res = this.db
+      .prepare(`DELETE FROM sessions WHERE expires_at <= ?`)
+      .run(new Date(now).toISOString());
+    return res.changes;
   }
 }
 

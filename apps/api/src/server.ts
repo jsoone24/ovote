@@ -98,7 +98,24 @@ export async function buildServer(deps: AppDeps) {
   await app.register(adminRoutes({ registry, sessions, otp }));
   await app.register(resultRoutes(chain));
 
+  // Background sweep of expired OTPs and sessions. resolve()/verify() also
+  // evict on touch, but rows for emails or tokens that never come back never
+  // get cleaned up otherwise. Cheap deletes; once a minute is plenty.
+  const sweepInterval = setInterval(() => {
+    try {
+      const otpRows = otp.sweepExpired();
+      const sessionRows = sessions.sweepExpired();
+      if (otpRows + sessionRows > 0) {
+        app.log.debug({ otpRows, sessionRows }, 'swept expired auth rows');
+      }
+    } catch (err) {
+      app.log.warn({ err }, 'auth sweep failed');
+    }
+  }, 60_000);
+  sweepInterval.unref();
+
   app.addHook('onClose', async () => {
+    clearInterval(sweepInterval);
     if (chain instanceof FabricChain) await chain.close();
     db.close();
   });
