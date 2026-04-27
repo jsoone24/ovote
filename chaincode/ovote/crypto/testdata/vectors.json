@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "hashToScalar": [
+    {
+      "domain": "test",
+      "parts": [],
+      "scalar": "5ntEGNNGcSNG9vRr84BG1x6O9FCHf_sfmskU3N-9cQw"
+    },
+    {
+      "domain": "test",
+      "parts": [
+        "AA"
+      ],
+      "scalar": "oucnWm6SEjHgB6YX34rDKKwF4pSgQz3Xhl2A16qTCgs"
+    },
+    {
+      "domain": "test",
+      "parts": [
+        "_____w"
+      ],
+      "scalar": "u47KOM6SfokKhrtCeiYh7swEkhP8vgL4KLhvH93IcQ0"
+    },
+    {
+      "domain": "ballot-sum:agenda-1",
+      "parts": [
+        "AQIDBA",
+        "qrvM3Q"
+      ],
+      "scalar": "BqJy0bS-FTofhwE4gAw_7CIIaBU1mYjNt7L1k9VRFQU"
+    },
+    {
+      "domain": "trustee-decrypt",
+      "parts": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "__________________________________________8"
+      ],
+      "scalar": "g4lbIz5raxq_xkjbLGhQdXqbf8qOO5xLk95qqruC1Ao"
+    }
+  ],
+  "schnorrEqualityOfDLogs": [
+    {
+      "domain": "parity-test",
+      "g1": "4vKuCmq8TnGohKlhxQBRX1jjC2qlgt2NtqZZReCNLXY",
+      "h1": "cA5H3sZxZrdjGQzoN23_89MM2EU7-yBXQr9WzrlT_iA",
+      "g2": "6pL4PREpCqWIOADGJSZYpIf9I_wZhiioHK4Eoa_T22U",
+      "h2": "mlHnPXvvapg_Gqu7j9LFJGkz_3GZTFa6jG-ZvP9tbXU",
+      "proof": {
+        "commitment": "rCdOlqS1uc3UxX0bzCCSqJHGn2MTsYY5X0tegSuelRo.ZvB714v2oXcUNcc-T84YpsCooWKlfMrBLyeJ-dgLyXk",
+        "response": "1FPfK7SmiNPAlXiEtv5qDpyP_HK-TOy7WRLMgRxBDQ4"
+      },
+      "expectedValid": true
+    },
+    {
+      "domain": "parity-test",
+      "g1": "4vKuCmq8TnGohKlhxQBRX1jjC2qlgt2NtqZZReCNLXY",
+      "h1": "cA5H3sZxZrdjGQzoN23_89MM2EU7-yBXQr9WzrlT_iA",
+      "g2": "6pL4PREpCqWIOADGJSZYpIf9I_wZhiioHK4Eoa_T22U",
+      "h2": "Oqof5t-hTAm7SQ0lDyK5FiXbOOLZfsBPqh3iRWVYJls",
+      "proof": {
+        "commitment": "rCdOlqS1uc3UxX0bzCCSqJHGn2MTsYY5X0tegSuelRo.ZvB714v2oXcUNcc-T84YpsCooWKlfMrBLyeJ-dgLyXk",
+        "response": "1FPfK7SmiNPAlXiEtv5qDpyP_HK-TOy7WRLMgRxBDQ4"
+      },
+      "expectedValid": false
+    }
+  ],
+  "lagrangeCoefficient": [
+    {
+      "index": 1,
+      "allIndices": [
+        1,
+        2
+      ],
+      "coefficient": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "index": 2,
+      "allIndices": [
+        1,
+        2
+      ],
+      "coefficient": "7NP1XBpjEljWnPei3vneFAAAAAAAAAAAAAAAAAAAABA"
+    },
+    {
+      "index": 1,
+      "allIndices": [
+        1,
+        2,
+        3
+      ],
+      "coefficient": "AwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "index": 2,
+      "allIndices": [
+        1,
+        2,
+        3
+      ],
+      "coefficient": "6tP1XBpjEljWnPei3vneFAAAAAAAAAAAAAAAAAAAABA"
+    },
+    {
+      "index": 3,
+      "allIndices": [
+        1,
+        2,
+        3
+      ],
+      "coefficient": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "index": 2,
+      "allIndices": [
+        2,
+        4,
+        5
+      ],
+      "coefficient": "TI1OkxFCDJA5E6VslKaUuKqqqqqqqqqqqqqqqqqqqgo"
+    }
+  ],
+  "thresholdDecryption": {
+    "threshold": 2,
+    "trustees": [
+      {
+        "index": 1,
+        "pk": "HjyiQcjpKBlDJZUr1XolCIjFkEgDCyDbDprZYZUPegI"
+      },
+      {
+        "index": 2,
+        "pk": "fEziRI3Ou7wA1dsgP7l5o-KtZqjMj--W3MfokvLAoik"
+      },
+      {
+        "index": 3,
+        "pk": "NusTHDnKSoO4jOHcDdHvgAR8haQ_R6Jvdgb_IJ3asGw"
+      }
+    ],
+    "groupPk": "kD1aBR-OhexCDJUtJlPBGnvgMVXOhPQIKAoGjDtl6W4",
+    "aggregate": {
+      "c1": "ukKEpkHAsb5q3_aUmjAQ4abOER7jfRwDqTLPWKw5B1g",
+      "c2": "zoUV7P_rVILrnBfLZC2apORRvLDtQBRuw8yfmJOw7C8"
+    },
+    "shares": [
+      {
+        "index": 1,
+        "share": "GJUAnY6rIKSd12AO54BIcfSrBdy0oe1KA79rfX683Cg",
+        "proof": {
+          "commitment": "EAFvVYspkYX3S-pEkFK52x4YqKpcC15-BNU1hDUFBgw.8kZ0_8mx6Fd-6CKlSZ_d-Ky3slfVwUPlw_lWSCajTw0",
+          "response": "OUrS72Oc6getYLzTQQRuteWqkStOccIJafMWuBEpYAs"
+        }
+      },
+      {
+        "index": 2,
+        "share": "Yn1EWqQd1tJANEp8x7--5PEC0g8WwgygryuEbwUJ9ns",
+        "proof": {
+          "commitment": "Jt3KI3_FCYvNJ7eTIaH7bEvyRpH-IeRgpQmKZUpRd3I._qe9HMjNRw_8ts612HSJoBXybrZA4ppOviPND9b3JXI",
+          "response": "8y9UL3SfuBP-UNnuhxv8IHy95QIm4r4HaWBvulGMnAA"
+        }
+      },
+      {
+        "index": 3,
+        "share": "KrMVjSnGlEF14SY6Y4ELUSHaLKZ14xMsG6yEK-uXwlc",
+        "proof": {
+          "commitment": "NKjniKU1I7tivW-HRdyYDsJ0f74fGrJz0QLtL63XkkQ.whRO7kKJgzXUNGwylRm9LQho4UmpuLvGp10tpK3pZ1o",
+          "response": "G957v1TgTMbPGDo821SKmw88untCQ24fRUEwKCKvDAE"
+        }
+      }
+    ],
+    "expectedM": 3
+  }
+}

@@ -350,7 +350,7 @@ See [SECURITY.md](../SECURITY.md) for the disclosure policy.
 - **Network anonymity.** The registrar sees the IP and email of every voter. Blind-signing breaks voter↔ballot linkability at the cryptographic level, but traffic analysis + timing is out of scope.
 - **Trustee key generation.** v1 uses a trusted dealer. For stronger guarantees swap in DKG — the on-chain format is ready for it.
 - **Single-choice ballots only.** The sum-proof in `ballot-verifier.ts` binds each ballot to encrypt exactly one `1` across all options. Supporting "pick up to k" or ranked ballots would need a different aggregate proof (e.g. sum ∈ {1..k}).
-- **Tally verification on-chain is partial.** The chaincode enforces (a) threshold trustee shares are present for every option and (b) the published counts sum to the total number of ballots cast — both refuse trivially fabricated tallies. It does **not** re-run the Lagrange interpolation or the small discrete-log decoding on-chain, because that would require porting ristretto255 + Schnorr verification to Go. Auditors can re-run the full crypto off-chain with `@ovote/crypto` against the public bulletin board.
+- **Tally verification on-chain is full.** The chaincode re-aggregates each option's ciphertexts across every cast ballot, re-verifies every submitted trustee Schnorr equality-of-DLogs proof, Lagrange-combines a quorum of valid shares, and brute-forces the small discrete log to confirm the published count. Cross-language byte-level parity between the TypeScript reference (`@ovote/crypto`) and the Go reimplementation (`chaincode/ovote/crypto`) is asserted by fixtures generated from `packages/crypto/scripts/dump-vectors.ts`; any drift fails the chaincode build.
 - **Single Fabric identity.** The API uses one certificate for every on-chain role; the chaincode `ovote.role` attribute is a comma-separated list (`admin,registrar,trustee`). Deployments that want stronger separation can issue one identity per role — the chaincode accepts both.
 - **Single-instance API.** Sessions and OTPs are stored in SQLite on one node. Multi-replica deployments need a shared DB or a move to Redis.
 - **Eligibility is frozen at open.** Adding a voter after the agenda opens returns `409`. This is by design — late additions break the "who could vote" auditor check.
@@ -408,3 +408,14 @@ For consortium deployments, document the above mapping in your privacy notice. T
 ### Background hygiene
 
 `OtpService.sweepExpired()` and `SessionService.sweepExpired()` are called by a 60-second `setInterval` in `apps/api/src/server.ts`. No external scheduler is needed.
+
+### Regenerating cross-language crypto parity fixtures
+
+The chaincode's on-chain tally verifier reuses a Go port of `@ovote/crypto`. Byte-level parity is asserted in `chaincode/ovote/crypto/crypto_test.go` against fixtures emitted by the TypeScript reference. Whenever you change anything in `packages/crypto/src/{hash,schnorr,threshold,ristretto}.ts`, regenerate the fixtures and commit the result:
+
+```bash
+pnpm --filter @ovote/crypto exec tsx scripts/dump-vectors.ts \
+  chaincode/ovote/crypto/testdata/vectors.json
+```
+
+CI runs the same regeneration and refuses to merge if the diff is non-empty (so you cannot accidentally ship a TS-only change that the chaincode silently disagrees with).

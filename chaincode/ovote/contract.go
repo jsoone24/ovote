@@ -266,10 +266,7 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 
 	// Sanity-check the submitted tally against the bulletin board: every
 	// option must appear exactly once and be backed by at least threshold
-	// trustee decryption shares. The actual count value is the result of
-	// off-chain Lagrange interpolation + small-discrete-log; we cannot
-	// re-run the crypto here, but we can ensure the shares exist so an
-	// admin can't publish a fabricated result out of thin air.
+	// trustee decryption shares.
 	if len(r.Results) != len(agenda.Options) {
 		return fmt.Errorf("tally covers %d options but agenda has %d", len(r.Results), len(agenda.Options))
 	}
@@ -277,12 +274,9 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 	if err != nil {
 		return fmt.Errorf("load decryption shares: %w", err)
 	}
-	sharesPerOption := map[string]map[int]struct{}{}
+	sharesByOption := map[string][]*TrusteeDecryptionShare{}
 	for _, s := range shares {
-		if sharesPerOption[s.OptionId] == nil {
-			sharesPerOption[s.OptionId] = map[int]struct{}{}
-		}
-		sharesPerOption[s.OptionId][s.TrusteeIndex] = struct{}{}
+		sharesByOption[s.OptionId] = append(sharesByOption[s.OptionId], s)
 	}
 	seen := map[string]struct{}{}
 	totalCount := 0
@@ -298,23 +292,37 @@ func (c *Contract) PublishResult(ctx contractapi.TransactionContextInterface, re
 			return fmt.Errorf("tally count for %q is negative", res.OptionId)
 		}
 		totalCount += res.Count
-		if len(sharesPerOption[res.OptionId]) < agenda.Key.Threshold {
+		if len(sharesByOption[res.OptionId]) < agenda.Key.Threshold {
 			return fmt.Errorf("option %q has %d decryption shares, need threshold=%d",
-				res.OptionId, len(sharesPerOption[res.OptionId]), agenda.Key.Threshold)
+				res.OptionId, len(sharesByOption[res.OptionId]), agenda.Key.Threshold)
 		}
 	}
 
 	// Every ballot encodes exactly one choice (enforced per-ballot by the
 	// sum proof at CastBallot). So the submitted counts must sum to the number
-	// of ballots on the board — a cheap cross-check that refuses any tally
-	// whose shape contradicts the bulletin board even though we can't re-run
-	// the decryption crypto here.
+	// of ballots on the board — refuses any tally whose shape contradicts the
+	// bulletin board even before the per-option crypto verification below.
 	ballots, err := c.ListBallots(ctx, agenda.Id)
 	if err != nil {
 		return fmt.Errorf("load ballots: %w", err)
 	}
 	if totalCount != len(ballots) {
 		return fmt.Errorf("tally counts sum to %d but %d ballots were cast", totalCount, len(ballots))
+	}
+
+	// Full per-option crypto verification. For each option we:
+	//   1. Compute the homomorphic aggregate ciphertext (sum of every ballot's
+	//      ciphertext for this option). This is what the trustees decrypted.
+	//   2. Re-verify each submitted Schnorr equality-of-DLogs proof against the
+	//      aggregate (g1=BASE, h1=trustee.pk, g2=aggregate.c1, h2=share).
+	//   3. Lagrange-combine the first `threshold` valid shares to recover m*G.
+	//   4. Solve the small discrete log: find m in [0..ballotCount] such that
+	//      m*G == recovered point. Compare to the published count.
+	// This is the on-chain equivalent of the auditor's TS-side recomputation.
+	// The crypto package is byte-parity-tested against @ovote/crypto
+	// (chaincode/ovote/crypto/crypto_test.go) so any drift fails the build.
+	if err := verifyPublishedTally(agenda, r.Results, ballots, sharesByOption); err != nil {
+		return fmt.Errorf("tally crypto verification failed: %w", err)
 	}
 
 	if r.PublishedAt == "" {

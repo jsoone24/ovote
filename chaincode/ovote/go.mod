@@ -1,14 +1,16 @@
 module github.com/ovote/chaincode
 
-go 1.22
+go 1.23
 
 require github.com/hyperledger/fabric-contract-api-go/v2 v2.2.0
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/spec v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
+	github.com/gtank/ristretto255 v0.2.0 // indirect
 	github.com/hyperledger/fabric-chaincode-go/v2 v2.0.0 // indirect
 	github.com/hyperledger/fabric-protos-go-apiv2 v0.3.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

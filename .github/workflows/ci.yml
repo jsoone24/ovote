@@ -38,6 +38,18 @@ jobs:
       - name: test
         run: pnpm -r --if-present test
 
+      # Cross-language crypto parity. The dumper script regenerates the test
+      # vectors that chaincode/ovote/crypto/crypto_test.go consumes; if anything
+      # in @ovote/crypto changed without a matching fixture refresh, this diff
+      # is non-empty and fails CI loudly instead of letting the chaincode build
+      # silently green-light a stale verifier.
+      - name: regenerate crypto parity fixtures
+        run: |
+          pnpm --filter @ovote/crypto exec tsx scripts/dump-vectors.ts \
+            ../../chaincode/ovote/crypto/testdata/vectors.json
+      - name: ensure parity fixtures are up to date
+        run: git diff --exit-code chaincode/ovote/crypto/testdata/vectors.json
+
   chaincode:
     name: chaincode (go vet · test · build)
     runs-on: ubuntu-24.04
@@ -50,7 +62,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
           cache-dependency-path: chaincode/ovote/go.sum
 
       - name: go mod download
