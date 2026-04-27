@@ -10,7 +10,14 @@ ENV VITE_OVOTE_API=${VITE_OVOTE_API} \
     PATH=/pnpm:$PATH \
     CI=true
 
-RUN corepack enable
+# pnpm install resolves the entire workspace lockfile (including api's
+# better-sqlite3, which compiles a native module via node-gyp). The build
+# tools below are only needed during this stage; the final image is nginx
+# + dist files, so the toolchain weight is build-time only.
+RUN corepack enable \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends python3 make g++ \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
