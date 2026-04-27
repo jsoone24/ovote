@@ -37,7 +37,10 @@ RUN pnpm --filter @ovote/shared build \
  && pnpm --filter @ovote/api    build
 
 # Produce a deployable node_modules containing only prod deps.
-RUN pnpm --filter @ovote/api deploy --prod /out
+# `--legacy` keeps the pnpm v9 behaviour where workspace deps are resolved
+# directly into the output tree; pnpm v10 made injection opt-in via the
+# inject-workspace-packages flag, which we don't enable.
+RUN pnpm --filter @ovote/api deploy --prod --legacy /out
 
 FROM node:24-bookworm-slim AS runtime
 
