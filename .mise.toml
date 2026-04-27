@@ -42,15 +42,13 @@ run = [
 
 [tasks."api:dev"]
 description = "Run backend API in watch mode"
-dir = "backend-server"
-run = "pnpm dev"
+run = "pnpm --filter @ovote/api dev"
 
 [tasks."web:dev"]
 description = "Run frontend in dev mode"
-dir = "frontend_server"
-run = "pnpm dev"
+run = "pnpm --filter @ovote/web dev"
 
 [tasks."chaincode:test"]
 description = "Run chaincode unit tests"
-dir = "chaincode"
+dir = "chaincode/ovote"
 run = "go test ./..."
