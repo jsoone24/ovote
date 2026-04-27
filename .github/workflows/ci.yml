@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   node:
-    name: node (typecheck · test · build)
+    name: node (build · test)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -29,9 +29,11 @@ jobs:
       - name: install
         run: pnpm install --frozen-lockfile
 
-      - name: typecheck
-        run: pnpm -r --if-present typecheck
-
+      # `build` is `tsc -b` (composite project references) for every package,
+      # which performs the typecheck while emitting. There is no separate
+      # typecheck step because TypeScript refuses `tsc -b --noEmit` against
+      # referenced composite projects (TS6310). The local `typecheck` script
+      # in each package still works once `dist/` exists.
       - name: build
         run: pnpm -r --if-present build
 
